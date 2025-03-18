@@ -251,6 +251,32 @@ export interface ChunkChatCompletionResponse {
   };
 }
 
+/** 上传文件请求参数接口 */
+export interface UploadFileParams {
+  /** 要上传的文件 */
+  file: File | Blob;
+  /** 用户标识，用于定义终端用户的身份，必须和发送消息接口传入 user 保持一致 */
+  user: string;
+}
+
+/** 上传文件响应体接口 */
+export interface UploadFileResponse {
+  /** 文件 ID */
+  id: string;
+  /** 文件名 */
+  name: string;
+  /** 文件大小（byte） */
+  size: number;
+  /** 文件后缀 */
+  extension: string;
+  /** 文件 mime-type */
+  mime_type: string;
+  /** 上传人 ID */
+  created_by: string;
+  /** 上传时间 */
+  created_at: number;
+}
+
 /** HTTP 客户端配置 */
 export interface HttpClientConfig {
   baseUrl: string;
@@ -360,5 +386,25 @@ export class DifyClient {
       }
       return chunks;
     }
+  }
+
+  /** 上传文件 */
+  async uploadFile(params: UploadFileParams): Promise<UploadFileResponse> {
+    const url = `${this.config.baseUrl}/files/upload`;
+    const formData = new FormData();
+    formData.append('file', params.file);
+    formData.append('user', params.user);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.config.apiKey}` },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
   }
 }

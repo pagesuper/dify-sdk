@@ -20,6 +20,15 @@ describe('DifyClient', () => {
     console.log('timeoutValue: ...', timeoutValue);
   });
 
+  // test('uploadFile', async () => {
+  //   const response = await difyClient.uploadFile({
+  //     file: new File(['test'], 'test.txt', { type: 'text/plain' }),
+  //     user,
+  //   });
+
+  //   console.log('uploadFile response: ...', response);
+  // });
+
   // test(
   //   'getConversations',
   //   async () => {
