@@ -706,6 +706,7 @@ export class DifyClient {
 
           lines.forEach((line) => {
             const json = line.replace('data: ', '');
+            console.log('json: ...', json);
             const chunk = JSON.parse(json) as ChunkChatCompletionResponse;
 
             if (typeof params.streamingCallback === 'function') {
