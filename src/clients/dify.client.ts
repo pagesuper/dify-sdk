@@ -68,7 +68,7 @@ export interface MessageFile {
 }
 
 /** Agent 思考内容接口 */
-export interface AgentThought {
+export interface MessageAgentThought {
   /** agent_thought ID，每一轮Agent迭代都会有一个唯一的id */
   id: string;
   /** 消息唯一ID */
@@ -90,7 +90,7 @@ export interface AgentThought {
 }
 
 /** 引用和归属分段列表接口 */
-export interface RetrieverResource {
+export interface SendMessageRetrieverResource {
   /** 引用位置 */
   position: number;
   /** 数据集 ID */
@@ -122,7 +122,7 @@ export interface Message {
   /** 消息文件列表 */
   message_files: MessageFile[];
   /** Agent思考内容（仅Agent模式下不为空） */
-  agent_thoughts: AgentThought[];
+  agent_thoughts: MessageAgentThought[];
   /** 回答消息内容 */
   answer: string;
   /** 创建时间 */
@@ -130,7 +130,7 @@ export interface Message {
   /** 反馈信息 */
   feedback: { rating: 'like' | 'dislike' } | null;
   /** 引用和归属分段列表 */
-  retriever_resources: RetrieverResource[];
+  retriever_resources: SendMessageRetrieverResource[];
 }
 
 /** 会话对象接口 */
@@ -198,7 +198,7 @@ export interface GetMessagesResponse {
 }
 
 /** 阻塞模式响应体接口 */
-export interface ChatCompletionResponse {
+export interface SendMessageCompletionResponse {
   /** 消息唯一 ID */
   message_id: string;
   /** 会话 ID */
@@ -212,14 +212,14 @@ export interface ChatCompletionResponse {
     /** 模型用量信息 */
     usage: Usage;
     /** 引用和归属分段列表 */
-    retriever_resources: RetrieverResource[];
+    retriever_resources: SendMessageRetrieverResource[];
   };
   /** 消息创建时间戳 */
   created_at: number;
 }
 
 /** 流式模式响应体接口 */
-export interface ChunkChatCompletionResponse {
+export interface SendMessageChunkCompletionResponse {
   /** 事件类型 */
   event: string;
   /** 任务 ID，用于请求跟踪和下方的停止响应接口 */
@@ -247,7 +247,7 @@ export interface ChunkChatCompletionResponse {
     /** 模型用量信息 */
     usage: Usage;
     /** 引用和归属分段列表 */
-    retriever_resources: RetrieverResource[];
+    retriever_resources: SendMessageRetrieverResource[];
   };
 }
 
@@ -278,7 +278,7 @@ export interface UploadFileResponse {
 }
 
 /** 停止响应请求参数接口 */
-export interface StopResponseParams {
+export interface StopMessageResponseParams {
   /** 任务 ID，可在流式返回 Chunk 中获取 */
   task_id: string;
   /** 用户标识，必须和发送消息接口传入 user 保持一致 */
@@ -286,13 +286,13 @@ export interface StopResponseParams {
 }
 
 /** 停止响应响应体接口 */
-export interface StopResponseResult {
+export interface StopMessageResponseResult {
   /** 固定返回 success */
   result: string;
 }
 
 /** 创建反馈请求参数接口 */
-export interface CreateFeedbackParams {
+export interface CreateMessageFeedbackParams {
   /** 消息 ID */
   message_id: string;
   /** 点赞 like, 点踩 dislike, 撤销点赞 null */
@@ -304,7 +304,7 @@ export interface CreateFeedbackParams {
 }
 
 /** 创建反馈响应体接口 */
-export interface CreateFeedbackResult {
+export interface CreateMessageFeedbackResult {
   /** 固定返回 success */
   result: string;
 }
@@ -447,6 +447,153 @@ export interface AppParameters {
   };
 }
 
+/** 运行 Workflow 请求参数接口 */
+export interface RunWorkflowParams {
+  /** Workflow 执行 ID */
+  workflow_id: string;
+}
+
+/** 运行 Workflow 响应体接口 */
+export interface RunWorkflowResult {
+  /** Workflow 执行 ID */
+  id: string;
+  /** 关联的 Workflow ID */
+  workflow_id: string;
+  /** 执行状态 */
+  status: 'running' | 'succeeded' | 'failed' | 'stopped';
+  /** 任务输入内容 */
+  inputs: any;
+  /** 任务输出内容 */
+  outputs: any;
+  /** 错误原因 */
+  error: string | null;
+  /** 任务执行总步数 */
+  total_steps: number;
+  /** 任务执行总 tokens */
+  total_tokens: number;
+  /** 任务开始时间 */
+  created_at: string;
+  /** 任务结束时间 */
+  finished_at: string;
+  /** 耗时（秒） */
+  elapsed_time: number;
+}
+
+/** 获取 Workflow 请求参数接口 */
+export interface GetWorkflowParams {
+  /** Workflow 执行 ID */
+  workflow_id: string;
+}
+
+/** 获取 Workflow 响应体接口 */
+export interface GetWorkflowResult {
+  /** Workflow 执行 ID */
+  id: string;
+  /** 关联的 Workflow ID */
+  workflow_id: string;
+  /** 执行状态 */
+  status: 'running' | 'succeeded' | 'failed' | 'stopped';
+  /** 任务输入内容 */
+  inputs: any;
+  /** 任务输出内容 */
+  outputs: any;
+  /** 错误原因 */
+  error: string | null;
+  /** 任务执行总步数 */
+  total_steps: number;
+  /** 任务执行总 tokens */
+  total_tokens: number;
+  /** 任务开始时间 */
+  created_at: string;
+  /** 任务结束时间 */
+  finished_at: string;
+  /** 耗时（秒） */
+  elapsed_time: number;
+}
+
+/** 停止 Workflow 任务请求参数接口 */
+export interface StopWorkflowTaskParams {
+  /** 任务 ID */
+  task_id: string;
+  /** 用户标识 */
+  user: string;
+}
+
+/** 停止 Workflow 任务响应体接口 */
+export interface StopWorkflowTaskResult {
+  /** 固定返回 "success" */
+  result: string;
+}
+
+/** 获取 Workflow 日志请求参数接口 */
+export interface GetWorkflowLogsParams {
+  /** 关键字 */
+  keyword?: string;
+  /** 执行状态 */
+  status?: 'succeeded' | 'failed' | 'stopped';
+  /** 当前页码 */
+  page?: number;
+  /** 每页条数 */
+  limit?: number;
+}
+
+/** 获取 Workflow 日志响应体接口 */
+export interface GetWorkflowLogsResult {
+  /** 当前页码 */
+  page: number;
+  /** 每页条数 */
+  limit: number;
+  /** 总条数 */
+  total: number;
+  /** 是否还有更多数据 */
+  has_more: boolean;
+  /** 当前页码的数据 */
+  data: Array<{
+    /** 标识 */
+    id: string;
+    /** Workflow 执行日志 */
+    workflow_run: {
+      /** 标识 */
+      id: string;
+      /** 版本 */
+      version: string;
+      /** 执行状态 */
+      status: 'running' | 'succeeded' | 'failed' | 'stopped';
+      /** 错误信息 */
+      error: string | null;
+      /** 耗时（秒） */
+      elapsed_time: number;
+      /** 消耗的 token 数量 */
+      total_tokens: number;
+      /** 执行步骤长度 */
+      total_steps: number;
+      /** 开始时间 */
+      created_at: number;
+      /** 结束时间 */
+      finished_at: number;
+    };
+    /** 来源 */
+    created_from: string;
+    /** 角色 */
+    created_by_role: string;
+    /** 账号 */
+    created_by_account: string | null;
+    /** 用户 */
+    created_by_end_user: {
+      /** 标识 */
+      id: string;
+      /** 类型 */
+      type: string;
+      /** 是否匿名 */
+      is_anonymous: boolean;
+      /** 会话标识 */
+      session_id: string;
+    };
+    /** 创建时间 */
+    created_at: number;
+  }>;
+}
+
 /** 获取应用 Meta 信息响应体接口 */
 export interface AppMeta {
   /** 工具图标 */
@@ -530,7 +677,7 @@ export class DifyClient {
   }
 
   /** 发送消息 */
-  async sendMessage(params: SendMessageParams): Promise<ChatCompletionResponse | ChunkChatCompletionResponse[]> {
+  async sendMessage(params: SendMessageParams): Promise<SendMessageCompletionResponse | SendMessageChunkCompletionResponse[]> {
     const url = `${this.config.baseUrl}/chat-messages`;
 
     const response = await fetch(url, {
@@ -544,10 +691,10 @@ export class DifyClient {
     }
 
     if (params.response_mode === 'blocking') {
-      return response.json() as Promise<ChatCompletionResponse>;
+      return response.json() as Promise<SendMessageCompletionResponse>;
     } else {
       const reader = response.body?.getReader();
-      const chunks: ChunkChatCompletionResponse[] = [];
+      const chunks: SendMessageChunkCompletionResponse[] = [];
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
@@ -556,7 +703,7 @@ export class DifyClient {
           const lines = text.split('\n\n').filter((line) => line.startsWith('data: '));
           lines.forEach((line) => {
             const json = line.replace('data: ', '');
-            chunks.push(JSON.parse(json) as ChunkChatCompletionResponse);
+            chunks.push(JSON.parse(json) as SendMessageChunkCompletionResponse);
           });
         }
       }
@@ -587,7 +734,7 @@ export class DifyClient {
   /**
    * 停止响应
    */
-  async stopResponse(params: StopResponseParams): Promise<StopResponseResult> {
+  async stopMessageResponse(params: StopMessageResponseParams): Promise<StopMessageResponseResult> {
     const url = `${this.config.baseUrl}/chat-messages/${params.task_id}/stop`;
     const response = await fetch(url, {
       method: 'POST',
@@ -601,7 +748,7 @@ export class DifyClient {
   /**
    * 创建反馈
    */
-  async createFeedback(params: CreateFeedbackParams): Promise<CreateFeedbackResult> {
+  async createMessageFeedback(params: CreateMessageFeedbackParams): Promise<CreateMessageFeedbackResult> {
     const url = `${this.config.baseUrl}/messages/${params.message_id}/feedbacks`;
 
     const response = await fetch(url, {
@@ -750,6 +897,75 @@ export class DifyClient {
     const response = await fetch(url, {
       method: 'GET',
       headers: { Authorization: `Bearer ${this.config.apiKey}` },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * 运行 Workflow
+   */
+  async runWorkflow(params: RunWorkflowParams): Promise<RunWorkflowResult> {
+    const url = `${this.config.baseUrl}/workflows/run/${params.workflow_id}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * 获取 Workflow 执行结果
+   */
+  async getWorkflow(params: GetWorkflowParams): Promise<GetWorkflowResult> {
+    const url = `${this.config.baseUrl}/workflows/run/${params.workflow_id}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * 停止 Workflow 任务
+   */
+  async stopWorkflowTask(params: StopWorkflowTaskParams): Promise<StopWorkflowTaskResult> {
+    const url = `${this.config.baseUrl}/workflows/tasks/${params.task_id}/stop`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user: params.user }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * 获取 Workflow 日志
+   */
+  async getWorkflowLogs(params: GetWorkflowLogsParams): Promise<GetWorkflowLogsResult> {
+    const url = `${this.config.baseUrl}/workflows/logs?keyword=${params.keyword || ''}&status=${params.status || ''}&page=${params.page || 1}&limit=${params.limit || 20}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
     });
 
     if (!response.ok) {
