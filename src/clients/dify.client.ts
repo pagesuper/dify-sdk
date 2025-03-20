@@ -634,7 +634,7 @@ export class DifyClient {
       query.set('sort_by', params.sort_by);
     }
 
-    const url = `${this.config.baseUrl}/conversations?${query}`;
+    const url = `${this.config.baseUrl}/v1/conversations?${query}`;
 
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${this.config.apiKey}`, Accept: 'application/json' },
@@ -660,7 +660,7 @@ export class DifyClient {
       query.set('limit', String(params.limit));
     }
 
-    const url = `${this.config.baseUrl}/messages?${query}`;
+    const url = `${this.config.baseUrl}/v1/messages?${query}`;
 
     console.log('url', url);
 
@@ -678,7 +678,7 @@ export class DifyClient {
 
   /** 发送消息 */
   async sendMessage(params: SendMessageParams): Promise<SendMessageCompletionResponse | SendMessageChunkCompletionResponse[]> {
-    const url = `${this.config.baseUrl}/chat-messages`;
+    const url = `${this.config.baseUrl}/v1/chat-messages`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -715,7 +715,7 @@ export class DifyClient {
    * 停止响应
    */
   async stopMessageResponse(params: StopMessageResponseParams): Promise<StopMessageResponseResult> {
-    const url = `${this.config.baseUrl}/chat-messages/${params.task_id}/stop`;
+    const url = `${this.config.baseUrl}/v1/chat-messages/${params.task_id}/stop`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
@@ -729,7 +729,7 @@ export class DifyClient {
    * 创建反馈
    */
   async createMessageFeedback(params: CreateMessageFeedbackParams): Promise<CreateMessageFeedbackResult> {
-    const url = `${this.config.baseUrl}/messages/${params.message_id}/feedbacks`;
+    const url = `${this.config.baseUrl}/v1/messages/${params.message_id}/feedbacks`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -748,7 +748,7 @@ export class DifyClient {
    * 获取建议问题列表
    */
   async getMessageSuggests(params: GetMessageSuggestsParams): Promise<GetMessageSuggestsResult> {
-    const url = `${this.config.baseUrl}/messages/${params.message_id}/suggested?user=${encodeURIComponent(params.user)}`;
+    const url = `${this.config.baseUrl}/v1/messages/${params.message_id}/suggested?user=${encodeURIComponent(params.user)}`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -766,7 +766,7 @@ export class DifyClient {
    * 删除会话
    */
   async deleteConversation(params: DeleteConversationParams): Promise<DeleteConversationResult> {
-    const url = `${this.config.baseUrl}/conversations/${params.conversation_id}`;
+    const url = `${this.config.baseUrl}/v1/conversations/${params.conversation_id}`;
 
     const response = await fetch(url, {
       method: 'DELETE',
@@ -785,7 +785,7 @@ export class DifyClient {
    * 重命名会话
    */
   async renameConversation(params: RenameConversationParams): Promise<RenameConversationResult> {
-    const url = `${this.config.baseUrl}/conversations/${params.conversation_id}/name`;
+    const url = `${this.config.baseUrl}/v1/conversations/${params.conversation_id}/name`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
@@ -803,7 +803,7 @@ export class DifyClient {
    * 语音转文字
    */
   async audioToText(params: AudioToTextParams): Promise<AudioToTextResult> {
-    const url = `${this.config.baseUrl}/audio-to-text`;
+    const url = `${this.config.baseUrl}/v1/audio-to-text`;
     const formData = new FormData();
     formData.append('file', params.file);
     formData.append('user', params.user);
@@ -825,7 +825,7 @@ export class DifyClient {
    * 文字转语音
    */
   async textToAudio(params: TextToAudioParams): Promise<Blob> {
-    const url = `${this.config.baseUrl}/text-to-audio`;
+    const url = `${this.config.baseUrl}/v1/text-to-audio`;
     const formData = new FormData();
 
     if (params.message_id) {
@@ -855,7 +855,7 @@ export class DifyClient {
    * 获取应用参数
    */
   async getParameters(): Promise<AppParameters> {
-    const url = `${this.config.baseUrl}/parameters`;
+    const url = `${this.config.baseUrl}/v1/parameters`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -873,7 +873,7 @@ export class DifyClient {
    * 获取应用 Meta 信息
    */
   async getMeta(): Promise<AppMeta> {
-    const url = `${this.config.baseUrl}/meta`;
+    const url = `${this.config.baseUrl}/v1/meta`;
     const response = await fetch(url, {
       method: 'GET',
       headers: { Authorization: `Bearer ${this.config.apiKey}` },
@@ -890,7 +890,7 @@ export class DifyClient {
    * 运行 Workflow
    */
   async runWorkflow(params: RunWorkflowParams): Promise<RunWorkflowResult> {
-    const url = `${this.config.baseUrl}/workflows/run/${params.workflow_id}`;
+    const url = `${this.config.baseUrl}/v1/workflows/run/${params.workflow_id}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
@@ -907,7 +907,7 @@ export class DifyClient {
    * 获取 Workflow 执行结果
    */
   async getWorkflow(params: GetWorkflowParams): Promise<GetWorkflowResult> {
-    const url = `${this.config.baseUrl}/workflows/run/${params.workflow_id}`;
+    const url = `${this.config.baseUrl}/v1/workflows/run/${params.workflow_id}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
@@ -924,7 +924,7 @@ export class DifyClient {
    * 停止 Workflow 任务
    */
   async stopWorkflowTask(params: StopWorkflowTaskParams): Promise<StopWorkflowTaskResult> {
-    const url = `${this.config.baseUrl}/workflows/tasks/${params.task_id}/stop`;
+    const url = `${this.config.baseUrl}/v1/workflows/tasks/${params.task_id}/stop`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
@@ -942,7 +942,7 @@ export class DifyClient {
    * 获取 Workflow 日志
    */
   async getWorkflowLogs(params: GetWorkflowLogsParams): Promise<GetWorkflowLogsResult> {
-    const url = `${this.config.baseUrl}/workflows/logs?keyword=${params.keyword || ''}&status=${params.status || ''}&page=${params.page || 1}&limit=${params.limit || 20}`;
+    const url = `${this.config.baseUrl}/v1/workflows/logs?keyword=${params.keyword || ''}&status=${params.status || ''}&page=${params.page || 1}&limit=${params.limit || 20}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
@@ -957,7 +957,7 @@ export class DifyClient {
 
   /** 上传文件 */
   async uploadFile(params: UploadFileParams): Promise<UploadFileResponse> {
-    const url = `${this.config.baseUrl}/files/upload`;
+    const url = `${this.config.baseUrl}/v1/files/upload`;
     const formData = new FormData();
     formData.append('file', params.file);
     formData.append('user', params.user);
