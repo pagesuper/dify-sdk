@@ -28,7 +28,7 @@ export interface SendMessageParams {
 }
 
 /** 模型用量信息接口 */
-export interface Usage {
+export interface ModelUsage {
   /** 输入 token 数 */
   prompt_tokens: number;
   /** 输入 token 单价 */
@@ -210,7 +210,7 @@ export interface SendMessageCompletionResponse {
   /** 元数据 */
   metadata: {
     /** 模型用量信息 */
-    usage: Usage;
+    usage: ModelUsage;
     /** 引用和归属分段列表 */
     retriever_resources: SendMessageRetrieverResource[];
   };
@@ -245,36 +245,10 @@ export interface SendMessageChunkCompletionResponse {
   /** 元数据 */
   metadata?: {
     /** 模型用量信息 */
-    usage: Usage;
+    usage: ModelUsage;
     /** 引用和归属分段列表 */
     retriever_resources: SendMessageRetrieverResource[];
   };
-}
-
-/** 上传文件请求参数接口 */
-export interface UploadFileParams {
-  /** 要上传的文件 */
-  file: File | Blob;
-  /** 用户标识，用于定义终端用户的身份，必须和发送消息接口传入 user 保持一致 */
-  user: string;
-}
-
-/** 上传文件响应体接口 */
-export interface UploadFileResponse {
-  /** 文件 ID */
-  id: string;
-  /** 文件名 */
-  name: string;
-  /** 文件大小（byte） */
-  size: number;
-  /** 文件后缀 */
-  extension: string;
-  /** 文件 mime-type */
-  mime_type: string;
-  /** 上传人 ID */
-  created_by: string;
-  /** 上传时间 */
-  created_at: number;
 }
 
 /** 停止响应请求参数接口 */
@@ -600,6 +574,32 @@ export interface AppMeta {
   tool_icons: Record<string, string | { background: string; content: string }>;
 }
 
+/** 上传文件请求参数接口 */
+export interface UploadFileParams {
+  /** 要上传的文件 */
+  file: File | Blob;
+  /** 用户标识，用于定义终端用户的身份，必须和发送消息接口传入 user 保持一致 */
+  user: string;
+}
+
+/** 上传文件响应体接口 */
+export interface UploadFileResponse {
+  /** 文件 ID */
+  id: string;
+  /** 文件名 */
+  name: string;
+  /** 文件大小（byte） */
+  size: number;
+  /** 文件后缀 */
+  extension: string;
+  /** 文件 mime-type */
+  mime_type: string;
+  /** 上传人 ID */
+  created_by: string;
+  /** 上传时间 */
+  created_at: number;
+}
+
 /** HTTP 客户端配置 */
 export interface HttpClientConfig {
   baseUrl: string;
@@ -709,26 +709,6 @@ export class DifyClient {
       }
       return chunks;
     }
-  }
-
-  /** 上传文件 */
-  async uploadFile(params: UploadFileParams): Promise<UploadFileResponse> {
-    const url = `${this.config.baseUrl}/files/upload`;
-    const formData = new FormData();
-    formData.append('file', params.file);
-    formData.append('user', params.user);
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${this.config.apiKey}` },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
-    }
-
-    return response.json();
   }
 
   /**
@@ -966,6 +946,26 @@ export class DifyClient {
     const response = await fetch(url, {
       method: 'GET',
       headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /** 上传文件 */
+  async uploadFile(params: UploadFileParams): Promise<UploadFileResponse> {
+    const url = `${this.config.baseUrl}/files/upload`;
+    const formData = new FormData();
+    formData.append('file', params.file);
+    formData.append('user', params.user);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.config.apiKey}` },
+      body: formData,
     });
 
     if (!response.ok) {

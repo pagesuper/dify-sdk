@@ -25,7 +25,7 @@ export interface SendMessageParams {
     auto_generate_name?: boolean;
 }
 /** 模型用量信息接口 */
-export interface Usage {
+export interface ModelUsage {
     /** 输入 token 数 */
     prompt_tokens: number;
     /** 输入 token 单价 */
@@ -197,7 +197,7 @@ export interface SendMessageCompletionResponse {
     /** 元数据 */
     metadata: {
         /** 模型用量信息 */
-        usage: Usage;
+        usage: ModelUsage;
         /** 引用和归属分段列表 */
         retriever_resources: SendMessageRetrieverResource[];
     };
@@ -231,34 +231,10 @@ export interface SendMessageChunkCompletionResponse {
     /** 元数据 */
     metadata?: {
         /** 模型用量信息 */
-        usage: Usage;
+        usage: ModelUsage;
         /** 引用和归属分段列表 */
         retriever_resources: SendMessageRetrieverResource[];
     };
-}
-/** 上传文件请求参数接口 */
-export interface UploadFileParams {
-    /** 要上传的文件 */
-    file: File | Blob;
-    /** 用户标识，用于定义终端用户的身份，必须和发送消息接口传入 user 保持一致 */
-    user: string;
-}
-/** 上传文件响应体接口 */
-export interface UploadFileResponse {
-    /** 文件 ID */
-    id: string;
-    /** 文件名 */
-    name: string;
-    /** 文件大小（byte） */
-    size: number;
-    /** 文件后缀 */
-    extension: string;
-    /** 文件 mime-type */
-    mime_type: string;
-    /** 上传人 ID */
-    created_by: string;
-    /** 上传时间 */
-    created_at: number;
 }
 /** 停止响应请求参数接口 */
 export interface StopMessageResponseParams {
@@ -562,6 +538,30 @@ export interface AppMeta {
         content: string;
     }>;
 }
+/** 上传文件请求参数接口 */
+export interface UploadFileParams {
+    /** 要上传的文件 */
+    file: File | Blob;
+    /** 用户标识，用于定义终端用户的身份，必须和发送消息接口传入 user 保持一致 */
+    user: string;
+}
+/** 上传文件响应体接口 */
+export interface UploadFileResponse {
+    /** 文件 ID */
+    id: string;
+    /** 文件名 */
+    name: string;
+    /** 文件大小（byte） */
+    size: number;
+    /** 文件后缀 */
+    extension: string;
+    /** 文件 mime-type */
+    mime_type: string;
+    /** 上传人 ID */
+    created_by: string;
+    /** 上传时间 */
+    created_at: number;
+}
 /** HTTP 客户端配置 */
 export interface HttpClientConfig {
     baseUrl: string;
@@ -578,8 +578,6 @@ export declare class DifyClient {
     getMessages(params: GetMessagesParams): Promise<GetMessagesResponse>;
     /** 发送消息 */
     sendMessage(params: SendMessageParams): Promise<SendMessageCompletionResponse | SendMessageChunkCompletionResponse[]>;
-    /** 上传文件 */
-    uploadFile(params: UploadFileParams): Promise<UploadFileResponse>;
     /**
      * 停止响应
      */
@@ -632,4 +630,6 @@ export declare class DifyClient {
      * 获取 Workflow 日志
      */
     getWorkflowLogs(params: GetWorkflowLogsParams): Promise<GetWorkflowLogsResult>;
+    /** 上传文件 */
+    uploadFile(params: UploadFileParams): Promise<UploadFileResponse>;
 }
