@@ -706,7 +706,7 @@ export class DifyClient {
 
           lines.forEach((line) => {
             const json = line.replace('data: ', '');
-            console.log('json: ...', json);
+            // console.log('json: ...', json);
             const chunk = JSON.parse(json) as ChunkChatCompletionResponse;
 
             if (typeof params.streamingCallback === 'function') {
@@ -731,7 +731,11 @@ export class DifyClient {
       headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ user: params.user }),
     });
-    if (!response.ok) throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
     return response.json();
   }
 
