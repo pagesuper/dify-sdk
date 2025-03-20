@@ -25,6 +25,8 @@ export interface SendMessageParams {
   }>;
   /** （选填）自动生成标题，默认 true */
   auto_generate_name?: boolean;
+  /** （选填）流式响应回调函数，用于处理流式返回的数据块 */
+  streamingCallback?: (chunk: ChunkChatCompletionResponse) => void;
 }
 
 /** 模型用量信息接口 */
@@ -198,7 +200,7 @@ export interface GetMessagesResponse {
 }
 
 /** 阻塞模式响应体接口 */
-export interface SendMessageCompletionResponse {
+export interface ChatCompletionResponse {
   /** 消息唯一 ID */
   message_id: string;
   /** 会话 ID */
@@ -219,7 +221,7 @@ export interface SendMessageCompletionResponse {
 }
 
 /** 流式模式响应体接口 */
-export interface SendMessageChunkCompletionResponse {
+export interface ChunkChatCompletionResponse {
   /** 事件类型 */
   event: string;
   /** 任务 ID，用于请求跟踪和下方的停止响应接口 */
@@ -677,13 +679,13 @@ export class DifyClient {
   }
 
   /** 发送消息 */
-  async sendMessage(params: SendMessageParams): Promise<SendMessageCompletionResponse | SendMessageChunkCompletionResponse[]> {
+  async sendMessage(params: SendMessageParams): Promise<ChatCompletionResponse | ChunkChatCompletionResponse[]> {
     const url = `${this.config.baseUrl}/v1/chat-messages`;
 
     const response = await fetch(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
+      body: JSON.stringify({ inputs: {}, ...params }),
     });
 
     if (!response.ok) {
@@ -691,19 +693,26 @@ export class DifyClient {
     }
 
     if (params.response_mode === 'blocking') {
-      return response.json() as Promise<SendMessageCompletionResponse>;
+      return response.json() as Promise<ChatCompletionResponse>;
     } else {
       const reader = response.body?.getReader();
-      const chunks: SendMessageChunkCompletionResponse[] = [];
+      const chunks: ChunkChatCompletionResponse[] = [];
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           const text = new TextDecoder().decode(value);
           const lines = text.split('\n\n').filter((line) => line.startsWith('data: '));
+
           lines.forEach((line) => {
             const json = line.replace('data: ', '');
-            chunks.push(JSON.parse(json) as SendMessageChunkCompletionResponse);
+            const chunk = JSON.parse(json) as ChunkChatCompletionResponse;
+
+            if (typeof params.streamingCallback === 'function') {
+              params.streamingCallback(chunk);
+            }
+
+            chunks.push(chunk);
           });
         }
       }

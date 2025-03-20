@@ -23,6 +23,8 @@ export interface SendMessageParams {
     }>;
     /** （选填）自动生成标题，默认 true */
     auto_generate_name?: boolean;
+    /** （选填）流式响应回调函数，用于处理流式返回的数据块 */
+    streamingCallback?: (chunk: ChunkChatCompletionResponse) => void;
 }
 /** 模型用量信息接口 */
 export interface ModelUsage {
@@ -185,7 +187,7 @@ export interface GetMessagesResponse {
     data: Message[];
 }
 /** 阻塞模式响应体接口 */
-export interface SendMessageCompletionResponse {
+export interface ChatCompletionResponse {
     /** 消息唯一 ID */
     message_id: string;
     /** 会话 ID */
@@ -205,7 +207,7 @@ export interface SendMessageCompletionResponse {
     created_at: number;
 }
 /** 流式模式响应体接口 */
-export interface SendMessageChunkCompletionResponse {
+export interface ChunkChatCompletionResponse {
     /** 事件类型 */
     event: string;
     /** 任务 ID，用于请求跟踪和下方的停止响应接口 */
@@ -577,7 +579,7 @@ export declare class DifyClient {
     /** 获取消息列表 */
     getMessages(params: GetMessagesParams): Promise<GetMessagesResponse>;
     /** 发送消息 */
-    sendMessage(params: SendMessageParams): Promise<SendMessageCompletionResponse | SendMessageChunkCompletionResponse[]>;
+    sendMessage(params: SendMessageParams): Promise<ChatCompletionResponse | ChunkChatCompletionResponse[]>;
     /**
      * 停止响应
      */
