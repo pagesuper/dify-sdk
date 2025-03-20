@@ -1,5 +1,5 @@
 {
-  "extends": "./node_modules/almighty-tool/templates/tsconfigs/lib.json",
+  "extends": "./templates/tsconfigs/lib.json",
   "compilerOptions": {
     "target": "ES5",
     "outDir": "./lib",

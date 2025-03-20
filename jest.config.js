@@ -1,1 +1,1 @@
-module.exports = require('almighty-tool/templates/jest/recommended');
+module.exports = require('./templates/jest/recommended');

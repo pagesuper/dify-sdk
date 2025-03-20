@@ -1,0 +1,42 @@
+/**
+ * package.json
+    "eslint": "8.19.0",
+    "eslint-config-prettier": "8.5.0",
+    "eslint-config-standard": "17.0.0",
+    "eslint-friendly-formatter": "4.0.1",
+    "eslint-loader": "4.0.2",
+    "eslint-plugin-html": "6.2.0",
+    "eslint-plugin-import": "2.25.4",
+    "eslint-plugin-jest": "26.5.3",
+    "eslint-plugin-n": "15.2.4",
+    "eslint-plugin-node": "11.1.0",
+    "eslint-plugin-prettier": "4.2.1",
+    "eslint-plugin-promise": "6.0.0",
+    "eslint-plugin-standard": "5.0.0",
+    "eslint-plugin-vue": "9.1.1",
+    "eslint-plugin-vue-scoped-css": "2.2.0",
+    "node-sass": "4.14.1",
+    "postcss": "8.4.14",
+    "postcss-comment": "2.0.0",
+    "postcss-css-variables": "0.17.0",
+    "postcss-html": "1.4.1",
+    "postcss-scss": "4.0.4",
+    "sass-loader": "10.0.4",
+    "stylelint": "14.9.1",
+    "stylelint-config-rational-order": "0.1.2",
+    "stylelint-config-standard": "26.0.0",
+    "stylelint-config-standard-scss": "4.0.0",
+    "stylelint-order": "5.0.0",
+    "stylelint-scss": "4.2.0",
+ */
+module.exports = {
+  extends: ['stylelint-config-standard', 'stylelint-config-standard-scss', 'stylelint-config-rational-order'],
+  plugins: ['stylelint-scss', 'stylelint-order'],
+  overrides: [
+    {
+      files: ['**/*.{vue,html}'],
+      customSyntax: 'postcss-html',
+    },
+  ],
+  rules: require('./rules/recommended'),
+};

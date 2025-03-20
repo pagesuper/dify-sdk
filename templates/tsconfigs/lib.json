@@ -1,0 +1,15 @@
+{
+  "extends": "./recommended.json",
+  "compilerOptions": {
+    "target": "ES5",
+    "module": "commonjs",
+    "outDir": "./lib",
+    "baseUrl": ".",
+    "strictNullChecks": true,
+    "declaration": true,
+    "noImplicitAny": true,
+    "sourceMap": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "test"]
+}

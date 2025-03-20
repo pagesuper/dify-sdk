@@ -277,6 +277,182 @@ export interface UploadFileResponse {
   created_at: number;
 }
 
+/** 停止响应请求参数接口 */
+export interface StopResponseParams {
+  /** 任务 ID，可在流式返回 Chunk 中获取 */
+  task_id: string;
+  /** 用户标识，必须和发送消息接口传入 user 保持一致 */
+  user: string;
+}
+
+/** 停止响应响应体接口 */
+export interface StopResponseResult {
+  /** 固定返回 success */
+  result: string;
+}
+
+/** 创建反馈请求参数接口 */
+export interface CreateFeedbackParams {
+  /** 消息 ID */
+  message_id: string;
+  /** 点赞 like, 点踩 dislike, 撤销点赞 null */
+  rating: 'like' | 'dislike' | null;
+  /** 用户标识，需保证用户标识在应用内唯一 */
+  user: string;
+  /** 消息反馈的具体信息 */
+  content?: string;
+}
+
+/** 创建反馈响应体接口 */
+export interface CreateFeedbackResult {
+  /** 固定返回 success */
+  result: string;
+}
+
+/** 获取建议问题请求参数接口 */
+export interface GetMessageSuggestsParams {
+  /** 消息 ID */
+  message_id: string;
+  /** 用户标识，需保证用户标识在应用内唯一 */
+  user: string;
+}
+
+/** 获取建议问题响应体接口 */
+export interface GetMessageSuggestsResult {
+  /** 固定返回 success */
+  result: string;
+  /** 建议问题列表 */
+  data: string[];
+}
+
+/** 删除会话请求参数接口 */
+export interface DeleteConversationParams {
+  /** 会话 ID */
+  conversation_id: string;
+  /** 用户标识，需保证用户标识在应用内唯一 */
+  user: string;
+}
+
+/** 删除会话响应体接口 */
+export interface DeleteConversationResult {
+  /** 固定返回 success */
+  result: string;
+}
+
+/** 重命名会话请求参数接口 */
+export interface RenameConversationParams {
+  /** 会话 ID */
+  conversation_id: string;
+  /** （选填）名称，若 auto_generate 为 true 时，该参数可不传 */
+  name?: string;
+  /** （选填）自动生成标题，默认 false */
+  auto_generate?: boolean;
+  /** 用户标识，需保证用户标识在应用内唯一 */
+  user: string;
+}
+
+/** 重命名会话响应体接口 */
+export interface RenameConversationResult {
+  /** 会话 ID */
+  id: string;
+  /** 会话名称 */
+  name: string;
+  /** 用户输入参数 */
+  inputs: Record<string, unknown>;
+  /** 会话状态 */
+  status: string;
+  /** 开场白 */
+  introduction: string;
+  /** 创建时间 */
+  created_at: number;
+  /** 更新时间 */
+  updated_at: number;
+}
+
+/** 语音转文字请求参数接口 */
+export interface AudioToTextParams {
+  /** 语音文件 */
+  file: File | Blob;
+  /** 用户标识，需保证用户标识在应用内唯一 */
+  user: string;
+}
+
+/** 语音转文字响应体接口 */
+export interface AudioToTextResult {
+  /** 输出文字 */
+  text: string;
+}
+
+/** 文字转语音请求参数接口 */
+export interface TextToAudioParams {
+  /** Dify 生成的文本消息 ID */
+  message_id?: string;
+  /** 语音生成内容 */
+  text?: string;
+  /** 用户标识，需保证用户标识在应用内唯一 */
+  user: string;
+}
+
+/** 获取应用基本信息响应体接口 */
+export interface AppInfo {
+  /** 应用名称 */
+  name: string;
+  /** 应用描述 */
+  description: string;
+  /** 应用标签 */
+  tags: string[];
+}
+
+/** 获取应用参数响应体接口 */
+export interface AppParameters {
+  /** 开场白 */
+  introduction: string;
+  /** 用户输入表单配置 */
+  user_input_form: Array<{
+    text_input?: {
+      label: string;
+      variable: string;
+      required: boolean;
+      max_length: number;
+      default: string;
+    };
+    paragraph?: {
+      label: string;
+      variable: string;
+      required: boolean;
+      default: string;
+    };
+    select?: {
+      label: string;
+      variable: string;
+      required: boolean;
+      default: string;
+      options: string[];
+    };
+  }>;
+  /** 文件上传配置 */
+  file_upload: {
+    image: {
+      enabled: boolean;
+      number_limits: number;
+      transfer_methods: string[];
+    };
+  };
+  /** 系统参数 */
+  system_parameters: {
+    file_size_limit: number;
+    image_file_size_limit: number;
+    audio_file_size_limit: number;
+    video_file_size_limit: number;
+  };
+}
+
+/** 获取应用 Meta 信息响应体接口 */
+export interface AppMeta {
+  /** 工具图标 */
+  tool_icons: Record<string, string | { background: string; content: string }>;
+}
+
 /** HTTP 客户端配置 */
 export interface HttpClientConfig {
   baseUrl: string;
@@ -399,6 +575,181 @@ export class DifyClient {
       method: 'POST',
       headers: { Authorization: `Bearer ${this.config.apiKey}` },
       body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * 停止响应
+   */
+  async stopResponse(params: StopResponseParams): Promise<StopResponseResult> {
+    const url = `${this.config.baseUrl}/chat-messages/${params.task_id}/stop`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user: params.user }),
+    });
+    if (!response.ok) throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    return response.json();
+  }
+
+  /**
+   * 创建反馈
+   */
+  async createFeedback(params: CreateFeedbackParams): Promise<CreateFeedbackResult> {
+    const url = `${this.config.baseUrl}/messages/${params.message_id}/feedbacks`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rating: params.rating, user: params.user, content: params.content }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * 获取建议问题列表
+   */
+  async getMessageSuggests(params: GetMessageSuggestsParams): Promise<GetMessageSuggestsResult> {
+    const url = `${this.config.baseUrl}/messages/${params.message_id}/suggested?user=${encodeURIComponent(params.user)}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * 删除会话
+   */
+  async deleteConversation(params: DeleteConversationParams): Promise<DeleteConversationResult> {
+    const url = `${this.config.baseUrl}/conversations/${params.conversation_id}`;
+
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user: params.user }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * 重命名会话
+   */
+  async renameConversation(params: RenameConversationParams): Promise<RenameConversationResult> {
+    const url = `${this.config.baseUrl}/conversations/${params.conversation_id}/name`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: params.name, auto_generate: params.auto_generate, user: params.user }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * 语音转文字
+   */
+  async audioToText(params: AudioToTextParams): Promise<AudioToTextResult> {
+    const url = `${this.config.baseUrl}/audio-to-text`;
+    const formData = new FormData();
+    formData.append('file', params.file);
+    formData.append('user', params.user);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.config.apiKey}` },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * 文字转语音
+   */
+  async textToAudio(params: TextToAudioParams): Promise<Blob> {
+    const url = `${this.config.baseUrl}/text-to-audio`;
+    const formData = new FormData();
+
+    if (params.message_id) {
+      formData.append('message_id', params.message_id);
+    }
+
+    if (params.text) {
+      formData.append('text', params.text);
+    }
+
+    formData.append('user', params.user);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.config.apiKey}` },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
+    return response.blob();
+  }
+
+  /**
+   * 获取应用参数
+   */
+  async getParameters(): Promise<AppParameters> {
+    const url = `${this.config.baseUrl}/parameters`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${this.config.apiKey}` },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * 获取应用 Meta 信息
+   */
+  async getMeta(): Promise<AppMeta> {
+    const url = `${this.config.baseUrl}/meta`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${this.config.apiKey}` },
     });
 
     if (!response.ok) {

@@ -38,9 +38,7 @@
     ],
     "*.{css,scss}": "stylelint --fix"
   },
-  "dependencies": {
-    "almighty-tool": ">=0.0.80"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@babel/plugin-syntax-typescript": "7.20.0",
     "@babel/preset-env": "7.23.9",

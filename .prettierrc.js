@@ -1,1 +1,1 @@
-module.exports = require('./node_modules/almighty-tool/templates/prettiers/recommended.js');
+module.exports = require('./templates/prettiers/recommended.js');
