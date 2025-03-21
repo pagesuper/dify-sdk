@@ -1,4 +1,3 @@
-```markdown
 # Dify SDK
 
 Dify SDK 是一个用于与 Dify 平台交互的 TypeScript/JavaScript SDK。它提供了与 Dify API 的完整集成，支持发送消息、管理会话、处理文件上传等功能。通过 Dify SDK，开发者可以轻松地将 Dify 的功能集成到自己的应用中。
@@ -9,6 +8,10 @@ Dify SDK 是一个用于与 Dify 平台交互的 TypeScript/JavaScript SDK。它
 
 ```bash
 npm install dify-sdk
+# or
+yarn add dify-sdk
+# or
+bun add dify-sdk
 ```
 
 ## 快速开始
@@ -108,7 +111,5 @@ console.log(stopResponse.result); // 输出停止结果
 ### 其他方法
 
 Dify SDK 还提供了许多其他功能，例如创建反馈、获取建议问题、删除会话、重命名会话、语音转文字、文字转语音等。详细信息请查看[源代码](https://github.com/pagesuper/dify-sdk)。
-
-```
 
 以上是 Dify SDK 的 README 文件，包含了主要方法的示例和其他功能的说明。如果需要更多详细信息，请查看源代码。
