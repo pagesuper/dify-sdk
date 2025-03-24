@@ -23,7 +23,7 @@ bun add dify-sdk
 ```typescript
 import { DifyClient } from 'dify-sdk';
 
-const client = new DifyClient({
+const difyClient = new DifyClient({
   baseUrl: 'https://api.dify.ai', // 替换为实际的 Dify API 地址
   apiKey: 'your-api-key', // 替换为你的 API 密钥
 });
@@ -38,7 +38,7 @@ const client = new DifyClient({
 使用 `sendMessage` 方法发送消息，支持流式响应和阻塞模式：
 
 ```typescript
-const result = await client.sendMessage({
+const result = await difyClient.sendMessage({
   query: '你好，Dify！',
   response_mode: 'streaming', // 或 'blocking'
   user: 'user-001',
@@ -61,7 +61,7 @@ if (Array.isArray(result)) {
 使用 `getConversations` 方法获取用户的会话列表：
 
 ```typescript
-const conversations = await client.getConversations({
+const conversations = await difyClient.getConversations({
   user: 'user-001',
   limit: 10,
 });
@@ -74,7 +74,7 @@ console.log(conversations.data); // 输出会话列表
 使用 `uploadFile` 方法上传文件：
 
 ```typescript
-const fileResponse = await client.uploadFile({
+const fileResponse = await difyClient.uploadFile({
   file: new File(['file content'], 'example.txt'),
   user: 'user-001',
 });
@@ -87,7 +87,7 @@ console.log(fileResponse.id); // 输出文件 ID
 使用 `getMessages` 方法获取指定会话的消息列表：
 
 ```typescript
-const messages = await client.getMessages({
+const messages = await difyClient.getMessages({
   conversation_id: 'conversation-id',
   user: 'user-001',
 });
@@ -100,7 +100,7 @@ console.log(messages.data); // 输出消息列表
 使用 `stopMessageResponse` 方法停止流式响应：
 
 ```typescript
-const stopResponse = await client.stopMessageResponse({
+const stopResponse = await difyClient.stopMessageResponse({
   task_id: 'task-id',
   user: 'user-001',
 });

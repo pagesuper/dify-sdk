@@ -1,14 +1,15 @@
 {
   "name": "dify-sdk",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "dify-sdk",
   "author": "happy",
   "private": false,
   "license": "MIT",
   "keywords": [
-    "wechat",
-    "weapp",
-    "wecom",
+    "ai",
+    "dify",
+    "dify.ai",
+    "LLM",
     "sdk"
   ],
   "repository": {
