@@ -664,8 +664,6 @@ export class DifyClient {
 
     const url = `${this.config.baseUrl}/v1/messages?${query}`;
 
-    console.log('url', url);
-
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${this.config.apiKey}`, Accept: 'application/json' },
       method: 'GET',
@@ -680,45 +678,147 @@ export class DifyClient {
 
   /** 发送消息 */
   async sendMessage(params: SendMessageParams): Promise<ChatCompletionResponse | ChunkChatCompletionResponse[]> {
-    const url = `${this.config.baseUrl}/v1/chat-messages`;
+    const useReader = (() => {
+      try {
+        return new Response(new ReadableStream()).body?.getReader() !== undefined;
+      } catch {
+        return false;
+      }
+    })();
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ inputs: {}, ...params }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
-    }
-
-    if (params.response_mode === 'blocking') {
-      return response.json() as Promise<ChatCompletionResponse>;
+    if (!useReader && params.response_mode === 'streaming') {
+      return await this.handleStreamWithXHR(params);
     } else {
-      const reader = response.body?.getReader();
-      const chunks: ChunkChatCompletionResponse[] = [];
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const text = new TextDecoder().decode(value);
-          const lines = text.split('\n\n').filter((line) => line.startsWith('data: '));
+      const url = `${this.config.baseUrl}/v1/chat-messages`;
 
-          lines.forEach((line) => {
-            const json = line.replace('data: ', '');
-            // console.log('json: ...', json);
-            const chunk = JSON.parse(json) as ChunkChatCompletionResponse;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inputs: {}, ...params }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+      }
+
+      if (params.response_mode === 'blocking') {
+        return response.json() as Promise<ChatCompletionResponse>;
+      } else {
+        const reader = response.body?.getReader();
+        const chunks: ChunkChatCompletionResponse[] = [];
+        let buffer = '';
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+
+            // 将Buffer转换为字符串
+            buffer += new TextDecoder().decode(value, { stream: true });
+            buffer = this.parseAndFlushBuffer({ buffer, chunks, params });
+
+            if (done) {
+              // 最后一次解析（处理可能的残留数据）
+              this.parseAndFlushBuffer({ buffer, chunks, params });
+              break;
+            }
+          }
+        }
+        return chunks;
+      }
+    }
+  }
+
+  parseAndFlushBuffer(options: { buffer: string; chunks: ChunkChatCompletionResponse[]; params: SendMessageParams }): string {
+    let buffer = options.buffer;
+    const chunks = options.chunks;
+
+    while (true) {
+      const splitMark = '\n\n';
+
+      // 分割数据块（根据服务端规范调整分隔符）
+      const chunkEnd = buffer.indexOf(splitMark);
+      // 数据不完整，继续等待
+      if (chunkEnd === -1) break;
+
+      const chunkData = buffer.slice(0, chunkEnd + splitMark.length);
+      buffer = buffer.slice(chunkEnd + splitMark.length);
+
+      // 解析JSON
+      let chunk: ChunkChatCompletionResponse;
+      try {
+        chunk = JSON.parse(chunkData.replace(/^data: /, '')) as ChunkChatCompletionResponse;
+      } catch (parseError) {
+        console.error('Failed to parse chunk:', chunkData);
+        throw new Error(`Invalid chunk format: ${chunkData}`);
+      }
+
+      if (typeof options.params.streamingCallback === 'function') {
+        options.params.streamingCallback(chunk);
+      }
+
+      chunks.push(chunk);
+    }
+    return buffer;
+  }
+
+  handleStreamWithXHR(params: SendMessageParams): Promise<ChunkChatCompletionResponse[]> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const url = `${this.config.baseUrl}/v1/chat-messages`;
+
+      xhr.open('POST', url, true);
+      xhr.setRequestHeader('Authorization', `Bearer ${this.config.apiKey}`);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+
+      let buffer = '';
+      const chunks: ChunkChatCompletionResponse[] = [];
+      let lastProcessedLength = 0;
+
+      xhr.onprogress = function () {
+        const newData = xhr.responseText.slice(lastProcessedLength);
+        lastProcessedLength = xhr.responseText.length;
+        buffer += newData;
+
+        // 分割数据块（根据服务端规范调整分隔符）
+        const splitMark = '\n\n';
+
+        while (true) {
+          const chunkEnd = buffer.indexOf(splitMark);
+          if (chunkEnd === -1) break;
+
+          const chunkData = buffer.slice(0, chunkEnd + splitMark.length);
+          buffer = buffer.slice(chunkEnd + splitMark.length);
+
+          try {
+            const chunk = JSON.parse(chunkData.replace(/^data: /, '')) as ChunkChatCompletionResponse;
 
             if (typeof params.streamingCallback === 'function') {
               params.streamingCallback(chunk);
             }
 
             chunks.push(chunk);
-          });
+          } catch (e) {
+            console.error('Chunk parse error:', chunkData);
+          }
         }
-      }
-      return chunks;
-    }
+      };
+
+      xhr.onloadend = function () {
+        // 请求完成
+        if (xhr.status >= 400) {
+          reject(new Error(`Request failed: ${xhr.statusText}`));
+        } else {
+          resolve(chunks);
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error('Network error'));
+      };
+
+      // 发送请求
+      xhr.send(JSON.stringify({ inputs: {}, ...params }));
+    });
   }
 
   /**
