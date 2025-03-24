@@ -580,6 +580,12 @@ export declare class DifyClient {
     getMessages(params: GetMessagesParams): Promise<GetMessagesResponse>;
     /** 发送消息 */
     sendMessage(params: SendMessageParams): Promise<ChatCompletionResponse | ChunkChatCompletionResponse[]>;
+    parseAndFlushBuffer(options: {
+        buffer: string;
+        chunks: ChunkChatCompletionResponse[];
+        params: SendMessageParams;
+    }): string;
+    handleStreamWithXHR(params: SendMessageParams): Promise<ChunkChatCompletionResponse[]>;
     /**
      * 停止响应
      */
