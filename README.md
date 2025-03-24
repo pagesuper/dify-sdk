@@ -21,7 +21,7 @@ bun add dify-sdk
 首先，初始化 `DifyClient` 并配置 API 密钥和基础 URL：
 
 ```typescript
-import { DifyClient } from 'dify-sdk';
+import { DifyClient } from 'dify-sdk/lib/clients/dify.client';
 
 const difyClient = new DifyClient({
   baseUrl: 'https://api.dify.ai', // 替换为实际的 Dify API 地址
