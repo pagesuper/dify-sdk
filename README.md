@@ -42,7 +42,7 @@ const result = await difyClient.sendMessage({
   query: '你好，Dify！',
   response_mode: 'streaming', // 或 'blocking'
   user: 'user-001',
-  streamingCallback: (chunk) => {
+  chunkCompletionCallback: (chunk) => {
     console.log('chuck: ...', chunk);
   }
 });

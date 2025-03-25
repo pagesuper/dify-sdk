@@ -26,7 +26,7 @@ export interface SendMessageParams {
   /** （选填）自动生成标题，默认 true */
   auto_generate_name?: boolean;
   /** （选填）流式响应回调函数，用于处理流式返回的数据块 */
-  streamingCallback?: (chunk: ChunkChatCompletionResponse) => void;
+  chunkCompletionCallback?: (chunk: ChatChunkCompletionResponse) => void;
 }
 
 /** 模型用量信息接口 */
@@ -221,7 +221,7 @@ export interface ChatCompletionResponse {
 }
 
 /** 流式模式响应体接口 */
-export interface ChunkChatCompletionResponse {
+export interface ChatChunkCompletionResponse {
   /** 事件类型 */
   event: string;
   /** 任务 ID，用于请求跟踪和下方的停止响应接口 */
@@ -677,7 +677,7 @@ export class DifyClient {
   }
 
   /** 发送消息 */
-  async sendMessage(params: SendMessageParams): Promise<ChatCompletionResponse | ChunkChatCompletionResponse[]> {
+  async sendMessage(params: SendMessageParams): Promise<ChatCompletionResponse | ChatChunkCompletionResponse[]> {
     const useReader = (() => {
       try {
         return new Response(new ReadableStream()).body?.getReader() !== undefined;
@@ -705,7 +705,7 @@ export class DifyClient {
         return response.json() as Promise<ChatCompletionResponse>;
       } else {
         const reader = response.body?.getReader();
-        const chunks: ChunkChatCompletionResponse[] = [];
+        const chunks: ChatChunkCompletionResponse[] = [];
         let buffer = '';
 
         if (reader) {
@@ -723,12 +723,13 @@ export class DifyClient {
             }
           }
         }
+
         return chunks;
       }
     }
   }
 
-  parseAndFlushBuffer(options: { buffer: string; chunks: ChunkChatCompletionResponse[]; params: SendMessageParams }): string {
+  parseAndFlushBuffer(options: { buffer: string; chunks: ChatChunkCompletionResponse[]; params: SendMessageParams }): string {
     let buffer = options.buffer;
     const chunks = options.chunks;
 
@@ -744,24 +745,25 @@ export class DifyClient {
       buffer = buffer.slice(chunkEnd + splitMark.length);
 
       // 解析JSON
-      let chunk: ChunkChatCompletionResponse;
-      try {
-        chunk = JSON.parse(chunkData.replace(/^data: /, '')) as ChunkChatCompletionResponse;
-      } catch (parseError) {
-        console.error('Failed to parse chunk:', chunkData);
-        throw new Error(`Invalid chunk format: ${chunkData}`);
-      }
+      if (chunkData.trim().startsWith('data:')) {
+        try {
+          const chunk: ChatChunkCompletionResponse = JSON.parse(chunkData.replace(/^data: /, ''));
 
-      if (typeof options.params.streamingCallback === 'function') {
-        options.params.streamingCallback(chunk);
-      }
+          if (typeof options.params.chunkCompletionCallback === 'function') {
+            options.params.chunkCompletionCallback(chunk);
+          }
 
-      chunks.push(chunk);
+          chunks.push(chunk);
+        } catch (parseError) {
+          console.error('Failed to parse chunk:', chunkData);
+          throw new Error(`Invalid chunk format: ${chunkData}`);
+        }
+      }
     }
     return buffer;
   }
 
-  handleStreamWithXHR(params: SendMessageParams): Promise<ChunkChatCompletionResponse[]> {
+  handleStreamWithXHR(params: SendMessageParams): Promise<ChatChunkCompletionResponse[]> {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       const url = `${this.config.baseUrl}/v1/chat-messages`;
@@ -771,7 +773,7 @@ export class DifyClient {
       xhr.setRequestHeader('Content-Type', 'application/json');
 
       let buffer = '';
-      const chunks: ChunkChatCompletionResponse[] = [];
+      const chunks: ChatChunkCompletionResponse[] = [];
       let lastProcessedLength = 0;
 
       xhr.onprogress = function () {
@@ -789,16 +791,18 @@ export class DifyClient {
           const chunkData = buffer.slice(0, chunkEnd + splitMark.length);
           buffer = buffer.slice(chunkEnd + splitMark.length);
 
-          try {
-            const chunk = JSON.parse(chunkData.replace(/^data: /, '')) as ChunkChatCompletionResponse;
+          if (chunkData.trim().startsWith('data:')) {
+            try {
+              const chunk: ChatChunkCompletionResponse = JSON.parse(chunkData.replace(/^data: /, ''));
 
-            if (typeof params.streamingCallback === 'function') {
-              params.streamingCallback(chunk);
+              if (typeof params.chunkCompletionCallback === 'function') {
+                params.chunkCompletionCallback(chunk);
+              }
+
+              chunks.push(chunk);
+            } catch (e) {
+              console.error('Chunk parse error:', chunkData);
             }
-
-            chunks.push(chunk);
-          } catch (e) {
-            console.error('Chunk parse error:', chunkData);
           }
         }
       };
