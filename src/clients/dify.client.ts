@@ -1,5 +1,65 @@
 /// 以下是models
 
+/** 文件 */
+export interface SendMessageFile {
+  /** 支持类型：图片 image（目前仅支持图片格式） */
+  type: string;
+  /** 传递方式：remote_url（图片地址）或 local_file（上传文件） */
+  transfer_method: string;
+  /** 图片地址（仅当传递方式为 remote_url 时） */
+  url?: string;
+  /** 上传文件 ID（仅当传递方式为 local_file 时） */
+  upload_file_id?: string;
+}
+
+/** 发送文本生成消息请求参数 */
+export interface SendCompletionMessageParams {
+  /** 应用变量键值对 */
+  inputs?: Record<string, unknown>;
+  /** 响应模式：streaming（流式）或 blocking（阻塞） */
+  response_mode: 'streaming' | 'blocking';
+  /** 用户唯一标识 */
+  user: string;
+  /** 上传的文件列表 */
+  files?: Array<SendMessageFile>;
+  /** 流式响应回调函数 */
+  chunkCompletionCallback?: (chunk: CompletionMessageChunkResponse) => void;
+}
+
+/** 阻塞模式响应体 */
+export interface CompletionMessageResponse {
+  id: string;
+  answer: string;
+  created_at: number;
+}
+
+/** 流式响应块结构 */
+export interface CompletionMessageChunkResponse {
+  event: string;
+  task_id?: string;
+  message_id?: string;
+  answer?: string;
+  audio?: string;
+  created_at?: number;
+  metadata?: {
+    usage: ModelUsage;
+    retriever_resources: SendMessageRetrieverResource[];
+  };
+  code?: string;
+  message?: string;
+}
+
+/** 停止响应请求参数 */
+export interface StopCompletionMessageParams {
+  task_id: string;
+  user: string;
+}
+
+/** 停止响应结果 */
+export interface StopCompletionMessageResult {
+  result: string;
+}
+
 /** 发送消息请求参数接口 */
 export interface SendMessageParams {
   /** 用户输入/提问内容 */
@@ -13,16 +73,7 @@ export interface SendMessageParams {
   /** （选填）会话 ID，需要基于之前的聊天记录继续对话，必须传之前消息的 conversation_id */
   conversation_id?: string;
   /** （选填）上传的文件 */
-  files?: Array<{
-    /** 支持类型：图片 image（目前仅支持图片格式） */
-    type: string;
-    /** 传递方式：remote_url（图片地址）或 local_file（上传文件） */
-    transfer_method: string;
-    /** 图片地址（仅当传递方式为 remote_url 时） */
-    url?: string;
-    /** 上传文件 ID（仅当传递方式为 local_file 时） */
-    upload_file_id?: string;
-  }>;
+  files?: Array<SendMessageFile>;
   /** （选填）自动生成标题，默认 true */
   auto_generate_name?: boolean;
   /** （选填）流式响应回调函数，用于处理流式返回的数据块 */
@@ -67,6 +118,12 @@ export interface MessageFile {
   url: string;
   /** 文件归属方，user 或 assistant */
   belongs_to: string;
+  filename: string;
+  size: number;
+  /** 传递方式：remote_url（图片地址）或 local_file（上传文件） */
+  transfer_method: string;
+  /** 文件 mime-type */
+  mime_type: string;
 }
 
 /** Agent 思考内容接口 */
@@ -369,20 +426,12 @@ export interface TextToAudioParams {
   user: string;
 }
 
-/** 获取应用基本信息响应体接口 */
-export interface AppInfo {
-  /** 应用名称 */
-  name: string;
-  /** 应用描述 */
-  description: string;
-  /** 应用标签 */
-  tags: string[];
-}
-
 /** 获取应用参数响应体接口 */
 export interface AppParameters {
   /** 开场白 */
   introduction: string;
+  /** 开场白 */
+  opening_statement: string;
   /** 用户输入表单配置 */
   user_input_form: Array<{
     text_input?: {
@@ -408,10 +457,36 @@ export interface AppParameters {
   }>;
   /** 文件上传配置 */
   file_upload: {
+    /** 图片设置，当前仅支持图片类型：png, jpg, jpeg, gif, webp */
     image: {
+      /** 是否开启 */
       enabled: boolean;
+      /** 图片数量限制，默认 3 */
       number_limits: number;
+      /** 传递方式列表，remote_url , local_file，必选一个 */
       transfer_methods: string[];
+    };
+    /** 是否开启 */
+    enabled: boolean;
+    /** 允许的文件类型，比如：'document', 'image', 'audio', 'video' */
+    allowed_file_types: string[];
+    allowed_file_extensions: [];
+    /** 允许文件的上传方式： 'remote_url', 'local_file' */
+    allowed_file_upload_methods: [];
+    /** 文件数量限制 */
+    number_limits: number;
+    /** 文件上传配置 */
+    fileUploadConfig: {
+      /** 文件大小限制 */
+      file_size_limit: number;
+      /** 批量上传数量限制 */
+      batch_count_limit: number;
+      /** 图片文件限制大小 */
+      image_file_size_limit: number;
+      /** video 限制大小 */
+      video_file_size_limit: number;
+      audio_file_size_limit: number;
+      workflow_file_upload_limit: number;
     };
   };
   /** 系统参数 */
@@ -420,6 +495,35 @@ export interface AppParameters {
     image_file_size_limit: number;
     audio_file_size_limit: number;
     video_file_size_limit: number;
+  };
+  /** 开场推荐问题列表 */
+  suggested_questions: string[];
+  /** 启用回答后给出推荐问题 */
+  suggested_questions_after_answer: {
+    /** 是否开启 */
+    enabled: boolean;
+  };
+  /** 语音转文本 */
+  speech_to_text: {
+    /** 是否开启 */
+    enabled: boolean;
+  };
+  /**
+   * 文本转语音
+   */
+  text_to_speech: {
+    /** 是否开启 */
+    enabled: boolean;
+  };
+  /** 引用和归属 */
+  retriever_resource: {
+    /** 是否开启 */
+    enabled: boolean;
+  };
+  /** 标记回复 */
+  annotation_reply: {
+    /** 是否开启 */
+    enabled: boolean;
   };
 }
 
@@ -576,6 +680,16 @@ export interface AppMeta {
   tool_icons: Record<string, string | { background: string; content: string }>;
 }
 
+/** 获取应用基本信息响应体接口 */
+export interface AppInfo {
+  /** 应用名称 */
+  name: string;
+  /** 应用描述 */
+  description: string;
+  /** 应用标签 */
+  tags: string[];
+}
+
 /** 上传文件请求参数接口 */
 export interface UploadFileParams {
   /** 要上传的文件 */
@@ -607,6 +721,92 @@ export interface HttpClientConfig {
   baseUrl: string;
   apiKey: string;
 }
+
+/** 上传文件后，组装前端需要的文件对象 */
+export interface UploadFileResult extends UploadFileResponse {
+  /** 文件类型：document， image， audio， video， custom */
+  type?: string;
+  /** 本地上传临时预览的图片链接 */
+  url?: string;
+}
+
+export const MIME_MAP = {
+  // 文档类型
+  document: {
+    mimeTypes: [
+      'text/plain', // TXT
+      'text/markdown', // MD, MDX
+      'text/html', // HTML
+      'application/pdf', // PDF
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // XLSX
+      'application/vnd.ms-excel', // XLS
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // DOCX
+      'application/msword', // DOC
+      'text/csv', // CSV
+      'message/rfc822', // EML
+      'application/vnd.ms-outlook', // MSG
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation', // PPTX
+      'application/vnd.ms-powerpoint', // PPT
+      'application/xml', // XML (通用)
+      'text/xml', // XML (特定)
+      'application/epub+zip', // EPUB
+    ],
+    extensions: [
+      '.txt',
+      '.md',
+      '.mdx',
+      '.html',
+      '.htm',
+      '.pdf',
+      '.xlsx',
+      '.xls',
+      '.docx',
+      '.doc',
+      '.csv',
+      '.eml',
+      '.msg',
+      '.pptx',
+      '.ppt',
+      '.xml',
+      '.epub',
+    ],
+  },
+
+  // 图片类型
+  image: {
+    mimeTypes: [
+      'image/jpeg', // JPG, JPEG
+      'image/png', // PNG
+      'image/gif', // GIF
+      'image/webp', // WEBP
+      'image/svg+xml', // SVG
+    ],
+    extensions: ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'],
+  },
+
+  // 音频类型
+  audio: {
+    mimeTypes: [
+      'audio/mpeg', // MP3, MPGA (MPEG Audio Layer III)
+      'audio/mp4', // M4A
+      'audio/wav', // WAV
+      'audio/webm', // WEBM
+      'audio/amr', // AMR
+    ],
+    extensions: ['.mp3', '.mpga', '.m4a', '.wav', '.webm', '.amr'],
+  },
+
+  // 视频类型
+  video: {
+    mimeTypes: [
+      'video/mp4', // MP4
+      'video/quicktime', // MOV
+      'video/mpeg', // MPEG
+      'audio/mpeg', // MPGA (复用音频类型，需注意)
+    ],
+    extensions: ['.mp4', '.mov', '.mpeg', '.mpg', '.mpe'],
+  },
+};
 
 /** 支持浏览器/Node 的 HTTP 客户端 */
 export class DifyClient {
@@ -944,22 +1144,11 @@ export class DifyClient {
    */
   async textToAudio(params: TextToAudioParams): Promise<Blob> {
     const url = `${this.config.baseUrl}/v1/text-to-audio`;
-    const formData = new FormData();
-
-    if (params.message_id) {
-      formData.append('message_id', params.message_id);
-    }
-
-    if (params.text) {
-      formData.append('text', params.text);
-    }
-
-    formData.append('user', params.user);
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${this.config.apiKey}` },
-      body: formData,
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
     });
 
     if (!response.ok) {
@@ -987,8 +1176,24 @@ export class DifyClient {
     return response.json();
   }
 
+  /** 获取应用基本信息 */
+  async getInfo(): Promise<AppInfo> {
+    const url = `${this.config.baseUrl}/v1/info`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${this.config.apiKey}` },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
   /**
    * 获取应用 Meta 信息
+   * - 用于获取工具icon
    */
   async getMeta(): Promise<AppMeta> {
     const url = `${this.config.baseUrl}/v1/meta`;
@@ -1090,6 +1295,86 @@ export class DifyClient {
       throw new Error(`Request failed: ${response.status} ${response.statusText}`);
     }
 
+    return response.json();
+  }
+
+  /** 发送文本生成消息 */
+  async sendCompletionMessage(
+    params: SendCompletionMessageParams,
+  ): Promise<CompletionMessageResponse | CompletionMessageChunkResponse[]> {
+    const url = `${this.config.baseUrl}/v1/completion-messages`;
+    const body = {
+      inputs: params.inputs || {},
+      response_mode: params.response_mode,
+      user: params.user,
+      files: params.files,
+    };
+
+    if (params.response_mode === 'blocking') {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      return response.json() as Promise<CompletionMessageResponse>;
+    } else {
+      // 流式处理逻辑
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const reader = response.body?.getReader();
+      const chunks: CompletionMessageChunkResponse[] = [];
+      let buffer = '';
+
+      const processBuffer = () => {
+        while (true) {
+          const terminatorIdx = buffer.indexOf('\n\n');
+          if (terminatorIdx === -1) break;
+
+          const chunkStr = buffer.slice(0, terminatorIdx);
+          buffer = buffer.slice(terminatorIdx + 2);
+
+          if (chunkStr.startsWith('data:')) {
+            try {
+              const chunk = JSON.parse(chunkStr.replace('data: ', '')) as CompletionMessageChunkResponse;
+              chunks.push(chunk);
+              params.chunkCompletionCallback?.(chunk);
+            } catch (e) {
+              console.error('Chunk parse error:', chunkStr);
+            }
+          }
+        }
+      };
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            processBuffer(); // 处理剩余数据
+            break;
+          }
+          buffer += new TextDecoder().decode(value);
+          processBuffer();
+        }
+      }
+      return chunks;
+    }
+  }
+
+  /** 停止文本生成流式响应 */
+  async stopCompletionMessage(params: StopCompletionMessageParams): Promise<StopCompletionMessageResult> {
+    const url = `${this.config.baseUrl}/v1/completion-messages/${params.task_id}/stop`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ user: params.user }),
+    });
     return response.json();
   }
 }

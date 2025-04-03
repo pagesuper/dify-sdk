@@ -1,3 +1,57 @@
+/** 文件 */
+export interface SendMessageFile {
+    /** 支持类型：图片 image（目前仅支持图片格式） */
+    type: string;
+    /** 传递方式：remote_url（图片地址）或 local_file（上传文件） */
+    transfer_method: string;
+    /** 图片地址（仅当传递方式为 remote_url 时） */
+    url?: string;
+    /** 上传文件 ID（仅当传递方式为 local_file 时） */
+    upload_file_id?: string;
+}
+/** 发送文本生成消息请求参数 */
+export interface SendCompletionMessageParams {
+    /** 应用变量键值对 */
+    inputs?: Record<string, unknown>;
+    /** 响应模式：streaming（流式）或 blocking（阻塞） */
+    response_mode: 'streaming' | 'blocking';
+    /** 用户唯一标识 */
+    user: string;
+    /** 上传的文件列表 */
+    files?: Array<SendMessageFile>;
+    /** 流式响应回调函数 */
+    chunkCompletionCallback?: (chunk: CompletionMessageChunkResponse) => void;
+}
+/** 阻塞模式响应体 */
+export interface CompletionMessageResponse {
+    id: string;
+    answer: string;
+    created_at: number;
+}
+/** 流式响应块结构 */
+export interface CompletionMessageChunkResponse {
+    event: string;
+    task_id?: string;
+    message_id?: string;
+    answer?: string;
+    audio?: string;
+    created_at?: number;
+    metadata?: {
+        usage: ModelUsage;
+        retriever_resources: SendMessageRetrieverResource[];
+    };
+    code?: string;
+    message?: string;
+}
+/** 停止响应请求参数 */
+export interface StopCompletionMessageParams {
+    task_id: string;
+    user: string;
+}
+/** 停止响应结果 */
+export interface StopCompletionMessageResult {
+    result: string;
+}
 /** 发送消息请求参数接口 */
 export interface SendMessageParams {
     /** 用户输入/提问内容 */
@@ -11,16 +65,7 @@ export interface SendMessageParams {
     /** （选填）会话 ID，需要基于之前的聊天记录继续对话，必须传之前消息的 conversation_id */
     conversation_id?: string;
     /** （选填）上传的文件 */
-    files?: Array<{
-        /** 支持类型：图片 image（目前仅支持图片格式） */
-        type: string;
-        /** 传递方式：remote_url（图片地址）或 local_file（上传文件） */
-        transfer_method: string;
-        /** 图片地址（仅当传递方式为 remote_url 时） */
-        url?: string;
-        /** 上传文件 ID（仅当传递方式为 local_file 时） */
-        upload_file_id?: string;
-    }>;
+    files?: Array<SendMessageFile>;
     /** （选填）自动生成标题，默认 true */
     auto_generate_name?: boolean;
     /** （选填）流式响应回调函数，用于处理流式返回的数据块 */
@@ -63,6 +108,12 @@ export interface MessageFile {
     url: string;
     /** 文件归属方，user 或 assistant */
     belongs_to: string;
+    filename: string;
+    size: number;
+    /** 传递方式：remote_url（图片地址）或 local_file（上传文件） */
+    transfer_method: string;
+    /** 文件 mime-type */
+    mime_type: string;
 }
 /** Agent 思考内容接口 */
 export interface MessageAgentThought {
@@ -341,19 +392,12 @@ export interface TextToAudioParams {
     /** 用户标识，需保证用户标识在应用内唯一 */
     user: string;
 }
-/** 获取应用基本信息响应体接口 */
-export interface AppInfo {
-    /** 应用名称 */
-    name: string;
-    /** 应用描述 */
-    description: string;
-    /** 应用标签 */
-    tags: string[];
-}
 /** 获取应用参数响应体接口 */
 export interface AppParameters {
     /** 开场白 */
     introduction: string;
+    /** 开场白 */
+    opening_statement: string;
     /** 用户输入表单配置 */
     user_input_form: Array<{
         text_input?: {
@@ -379,10 +423,36 @@ export interface AppParameters {
     }>;
     /** 文件上传配置 */
     file_upload: {
+        /** 图片设置，当前仅支持图片类型：png, jpg, jpeg, gif, webp */
         image: {
+            /** 是否开启 */
             enabled: boolean;
+            /** 图片数量限制，默认 3 */
             number_limits: number;
+            /** 传递方式列表，remote_url , local_file，必选一个 */
             transfer_methods: string[];
+        };
+        /** 是否开启 */
+        enabled: boolean;
+        /** 允许的文件类型，比如：'document', 'image', 'audio', 'video' */
+        allowed_file_types: string[];
+        allowed_file_extensions: [];
+        /** 允许文件的上传方式： 'remote_url', 'local_file' */
+        allowed_file_upload_methods: [];
+        /** 文件数量限制 */
+        number_limits: number;
+        /** 文件上传配置 */
+        fileUploadConfig: {
+            /** 文件大小限制 */
+            file_size_limit: number;
+            /** 批量上传数量限制 */
+            batch_count_limit: number;
+            /** 图片文件限制大小 */
+            image_file_size_limit: number;
+            /** video 限制大小 */
+            video_file_size_limit: number;
+            audio_file_size_limit: number;
+            workflow_file_upload_limit: number;
         };
     };
     /** 系统参数 */
@@ -391,6 +461,35 @@ export interface AppParameters {
         image_file_size_limit: number;
         audio_file_size_limit: number;
         video_file_size_limit: number;
+    };
+    /** 开场推荐问题列表 */
+    suggested_questions: string[];
+    /** 启用回答后给出推荐问题 */
+    suggested_questions_after_answer: {
+        /** 是否开启 */
+        enabled: boolean;
+    };
+    /** 语音转文本 */
+    speech_to_text: {
+        /** 是否开启 */
+        enabled: boolean;
+    };
+    /**
+     * 文本转语音
+     */
+    text_to_speech: {
+        /** 是否开启 */
+        enabled: boolean;
+    };
+    /** 引用和归属 */
+    retriever_resource: {
+        /** 是否开启 */
+        enabled: boolean;
+    };
+    /** 标记回复 */
+    annotation_reply: {
+        /** 是否开启 */
+        enabled: boolean;
     };
 }
 /** 运行 Workflow 请求参数接口 */
@@ -540,6 +639,15 @@ export interface AppMeta {
         content: string;
     }>;
 }
+/** 获取应用基本信息响应体接口 */
+export interface AppInfo {
+    /** 应用名称 */
+    name: string;
+    /** 应用描述 */
+    description: string;
+    /** 应用标签 */
+    tags: string[];
+}
 /** 上传文件请求参数接口 */
 export interface UploadFileParams {
     /** 要上传的文件 */
@@ -569,6 +677,31 @@ export interface HttpClientConfig {
     baseUrl: string;
     apiKey: string;
 }
+/** 上传文件后，组装前端需要的文件对象 */
+export interface UploadFileResult extends UploadFileResponse {
+    /** 文件类型：document， image， audio， video， custom */
+    type?: string;
+    /** 本地上传临时预览的图片链接 */
+    url?: string;
+}
+export declare const MIME_MAP: {
+    document: {
+        mimeTypes: string[];
+        extensions: string[];
+    };
+    image: {
+        mimeTypes: string[];
+        extensions: string[];
+    };
+    audio: {
+        mimeTypes: string[];
+        extensions: string[];
+    };
+    video: {
+        mimeTypes: string[];
+        extensions: string[];
+    };
+};
 /** 支持浏览器/Node 的 HTTP 客户端 */
 export declare class DifyClient {
     private config;
@@ -618,8 +751,11 @@ export declare class DifyClient {
      * 获取应用参数
      */
     getParameters(): Promise<AppParameters>;
+    /** 获取应用基本信息 */
+    getInfo(): Promise<AppInfo>;
     /**
      * 获取应用 Meta 信息
+     * - 用于获取工具icon
      */
     getMeta(): Promise<AppMeta>;
     /**
@@ -640,4 +776,8 @@ export declare class DifyClient {
     getWorkflowLogs(params: GetWorkflowLogsParams): Promise<GetWorkflowLogsResult>;
     /** 上传文件 */
     uploadFile(params: UploadFileParams): Promise<UploadFileResponse>;
+    /** 发送文本生成消息 */
+    sendCompletionMessage(params: SendCompletionMessageParams): Promise<CompletionMessageResponse | CompletionMessageChunkResponse[]>;
+    /** 停止文本生成流式响应 */
+    stopCompletionMessage(params: StopCompletionMessageParams): Promise<StopCompletionMessageResult>;
 }
