@@ -1,5 +1,66 @@
 /// 以下是models
 
+/** 运行 Workflow 请求参数接口 */
+export interface WorkflowRunParams {
+  /** 允许传入 App 定义的各变量值 */
+  inputs: Record<string, unknown>;
+  /** 响应模式：streaming（流式）或 blocking（阻塞） */
+  response_mode: 'streaming' | 'blocking';
+  /** 用户唯一标识 */
+  user: string;
+}
+
+/** Workflow 基础响应结构 */
+interface WorkflowBaseResponse {
+  /** workflow 执行 ID */
+  workflow_run_id: string;
+  /** 任务跟踪 ID */
+  task_id: string;
+}
+
+/** 阻塞模式响应体接口 */
+export interface WorkflowCompletionResponse extends WorkflowBaseResponse {
+  data: {
+    id: string;
+    workflow_id: string;
+    status: 'running' | 'succeeded' | 'failed' | 'stopped';
+    outputs?: any;
+    error?: string;
+    elapsed_time?: number;
+    total_tokens?: number;
+    total_steps?: number;
+    created_at: number;
+    finished_at?: number;
+  };
+}
+
+/** 流式事件类型 */
+export type WorkflowChunkEvent =
+  | 'workflow_started'
+  | 'node_started'
+  | 'node_finished'
+  | 'workflow_finished'
+  | 'tts_message'
+  | 'tts_message_end'
+  | 'ping';
+
+/** 流式响应块结构 */
+export interface WorkflowChunkResponse extends WorkflowBaseResponse {
+  event: WorkflowChunkEvent;
+  data: any; // 根据事件类型细化结构
+  created_at?: number;
+  audio?: string;
+  message_id?: string;
+}
+
+/** 文件输入结构 */
+export interface WorkflowFileInput {
+  type: 'document' | 'image' | 'audio' | 'video' | 'custom';
+  transfer_method: 'remote_url' | 'local_file';
+  url?: string;
+  upload_file_id?: string;
+}
+
 /** 文件 */
 export interface SendMessageFile {
   /** 支持类型：图片 image（目前仅支持图片格式） */
@@ -525,38 +586,6 @@ export interface AppParameters {
     /** 是否开启 */
     enabled: boolean;
   };
-}
-
-/** 运行 Workflow 请求参数接口 */
-export interface RunWorkflowParams {
-  /** Workflow 执行 ID */
-  workflow_id: string;
-}
-
-/** 运行 Workflow 响应体接口 */
-export interface RunWorkflowResult {
-  /** Workflow 执行 ID */
-  id: string;
-  /** 关联的 Workflow ID */
-  workflow_id: string;
-  /** 执行状态 */
-  status: 'running' | 'succeeded' | 'failed' | 'stopped';
-  /** 任务输入内容 */
-  inputs: any;
-  /** 任务输出内容 */
-  outputs: any;
-  /** 错误原因 */
-  error: string | null;
-  /** 任务执行总步数 */
-  total_steps: number;
-  /** 任务执行总 tokens */
-  total_tokens: number;
-  /** 任务开始时间 */
-  created_at: string;
-  /** 任务结束时间 */
-  finished_at: string;
-  /** 耗时（秒） */
-  elapsed_time: number;
 }
 
 /** 获取 Workflow 请求参数接口 */
@@ -1212,18 +1241,77 @@ export class DifyClient {
   /**
    * 运行 Workflow
    */
-  async runWorkflow(params: RunWorkflowParams): Promise<RunWorkflowResult> {
-    const url = `${this.config.baseUrl}/v1/workflows/run/${params.workflow_id}`;
+  async runWorkflow(params: WorkflowRunParams): Promise<WorkflowCompletionResponse | WorkflowChunkResponse[]> {
+    const url = `${this.config.baseUrl}/v1/workflows/run`;
+    const isStreaming = params.response_mode === 'streaming';
+
+    // 处理流式响应
+    if (isStreaming) {
+      return this.handleWorkflowStream(params, url);
+    }
+
+    // 阻塞模式处理
     const response = await fetch(url, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
     });
 
     if (!response.ok) {
-      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+      throw new Error(`Workflow failed: ${response.status} ${response.statusText}`);
     }
 
-    return response.json();
+    return response.json() as Promise<WorkflowCompletionResponse>;
+  }
+
+  /**
+   * 处理流式响应
+   */
+  private async handleWorkflowStream(params: WorkflowRunParams, url: string): Promise<WorkflowChunkResponse[]> {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok || !response.body) {
+      throw new Error(`Workflow failed: ${response.status} ${response.statusText}`);
+    }
+
+    const reader = response.body.getReader();
+    const chunks: WorkflowChunkResponse[] = [];
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += new TextDecoder().decode(value);
+
+      // 按事件分割处理
+      while (buffer.includes('\n\n')) {
+        const chunkEnd = buffer.indexOf('\n\n');
+        const chunkStr = buffer.slice(0, chunkEnd);
+        buffer = buffer.slice(chunkEnd + 2);
+
+        if (chunkStr.startsWith('data:')) {
+          try {
+            const chunkData: WorkflowChunkResponse = JSON.parse(chunkStr.slice(5).trim());
+            chunks.push(chunkData);
+          } catch (e) {
+            console.error('Failed to parse workflow chunk:', chunkStr);
+          }
+        }
+      }
+    }
+
+    return chunks;
   }
 
   /**
@@ -1265,7 +1353,9 @@ export class DifyClient {
    * 获取 Workflow 日志
    */
   async getWorkflowLogs(params: GetWorkflowLogsParams): Promise<GetWorkflowLogsResult> {
-    const url = `${this.config.baseUrl}/v1/workflows/logs?keyword=${params.keyword || ''}&status=${params.status || ''}&page=${params.page || 1}&limit=${params.limit || 20}`;
+    const url = `${this.config.baseUrl}/v1/workflows/logs?keyword=${params.keyword || ''}&status=${params.status || ''}&page=${
+      params.page || 1
+    }&limit=${params.limit || 20}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
