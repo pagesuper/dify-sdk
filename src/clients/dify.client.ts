@@ -369,6 +369,23 @@ export interface ChatChunkCompletionResponse {
     /** 引用和归属分段列表 */
     retriever_resources: SendMessageRetrieverResource[];
   };
+  /** 文件列表： message_end结束的时候可能会有文件 */
+  files?: {
+    dify_model_identity: string;
+    extension: string;
+    filename: string;
+    /** 此时id为null, 要取related_id */
+    id: string;
+    mime_type: string;
+    /** 此时id为null, 要取related_id */
+    related_id: string;
+    remote_url: string;
+    size: number;
+    tenant_id: string;
+    transfer_method: string;
+    type: string;
+    url: string;
+  }[];
 }
 
 /** 停止响应请求参数接口 */
@@ -586,6 +603,71 @@ export interface AppParameters {
     /** 是否开启 */
     enabled: boolean;
   };
+  /** 内容审查 */
+  sensitive_word_avoidance: {
+    /** 审查内容类别:
+     * - OpenAI Moderation
+     * - 关键词： keywords
+     * - api扩展
+     */
+    type: string;
+    /** 是否开启 */
+    enabled: boolean;
+    /** 配置 */
+    config: {
+      /** 输入配置 */
+      inputs_config: {
+        /** 是否开启 */
+        enabled: boolean;
+        /** 审查输入内容 预设回复 */
+        preset_response: string;
+      };
+      /** 输出配置 */
+      outputs_config: {
+        /** 是否开启 */
+        enabled: boolean;
+        /** 审查输出内容 预设回复 */
+        preset_response: string;
+      };
+      /**
+       * 敏感词 用换行符\n拼接
+       * 每行一个，用换行符分隔。每行最多 100 个字符
+       */
+      keywords: string;
+    };
+  };
+}
+
+/** 运行 Workflow 请求参数接口 */
+export interface RunWorkflowParams {
+  /** Workflow 执行 ID */
+  workflow_id: string;
+}
+
+/** 运行 Workflow 响应体接口 */
+export interface RunWorkflowResult {
+  /** Workflow 执行 ID */
+  id: string;
+  /** 关联的 Workflow ID */
+  workflow_id: string;
+  /** 执行状态 */
+  status: 'running' | 'succeeded' | 'failed' | 'stopped';
+  /** 任务输入内容 */
+  inputs: any;
+  /** 任务输出内容 */
+  outputs: any;
+  /** 错误原因 */
+  error: string | null;
+  /** 任务执行总步数 */
+  total_steps: number;
+  /** 任务执行总 tokens */
+  total_tokens: number;
+  /** 任务开始时间 */
+  created_at: string;
+  /** 任务结束时间 */
+  finished_at: string;
+  /** 耗时（秒） */
+  elapsed_time: number;
 }
 
 /** 获取 Workflow 请求参数接口 */
@@ -757,6 +839,8 @@ export interface UploadFileResult extends UploadFileResponse {
   type?: string;
   /** 本地上传临时预览的图片链接 */
   url?: string;
+  /** 文件所属: 'user' | 'assistant' */
+  belongs_to?: string;
 }
 
 export const MIME_MAP = {
