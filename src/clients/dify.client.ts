@@ -1389,49 +1389,64 @@ export class DifyClient {
   /**
    * 处理流式响应
    */
-  private async handleWorkflowStream(params: WorkflowRunParams, url: string): Promise<WorkflowChunkResponse[]> {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.config.apiKey}`,
-        'Content-Type': 'application/json',
-        ...this.config.defaultHeaders,
-      },
-      body: JSON.stringify(params),
-    });
+  private handleWorkflowStream(params: WorkflowRunParams, url: string): Promise<WorkflowChunkResponse[]> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', url, true);
 
-    if (!response.ok || !response.body) {
-      throw new Error(`Workflow failed: ${response.status} ${response.statusText}`);
-    }
+      // 设置请求头
+      xhr.setRequestHeader('Authorization', `Bearer ${this.config.apiKey}`);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      if (this.config.defaultHeaders) {
+        Object.keys(this.config.defaultHeaders).forEach((key) => {
+          xhr.setRequestHeader(key, this.config.defaultHeaders![key]);
+        });
+      }
 
-    const reader = response.body.getReader();
-    const chunks: WorkflowChunkResponse[] = [];
-    let buffer = '';
+      let buffer = '';
+      const chunks: WorkflowChunkResponse[] = [];
+      let lastProcessedLength = 0;
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+      // 流式数据处理
+      xhr.onprogress = () => {
+        const newData = xhr.responseText.slice(lastProcessedLength);
+        lastProcessedLength = xhr.responseText.length;
+        buffer += newData;
 
-      buffer += new TextDecoder().decode(value);
+        // 事件分割处理（根据服务端规范使用 \n\n 分隔符）
+        while (buffer.includes('\n\n')) {
+          const chunkEnd = buffer.indexOf('\n\n');
+          const chunkStr = buffer.slice(0, chunkEnd);
+          buffer = buffer.slice(chunkEnd + 2);
 
-      // 按事件分割处理
-      while (buffer.includes('\n\n')) {
-        const chunkEnd = buffer.indexOf('\n\n');
-        const chunkStr = buffer.slice(0, chunkEnd);
-        buffer = buffer.slice(chunkEnd + 2);
-
-        if (chunkStr.startsWith('data:')) {
-          try {
-            const chunkData: WorkflowChunkResponse = JSON.parse(chunkStr.slice(5).trim());
-            chunks.push(chunkData);
-          } catch (e) {
-            console.error('Failed to parse workflow chunk:', chunkStr);
+          if (chunkStr.startsWith('data:')) {
+            try {
+              const chunkData: WorkflowChunkResponse = JSON.parse(chunkStr.replace(/^data: /, '').trim());
+              chunks.push(chunkData);
+            } catch (e) {
+              console.error('Failed to parse workflow chunk:', chunkStr);
+            }
           }
         }
-      }
-    }
+      };
 
-    return chunks;
+      // 请求完成处理
+      xhr.onloadend = () => {
+        if (xhr.status >= 400) {
+          reject(new Error(`Workflow failed: ${xhr.status} ${xhr.statusText}`));
+        } else {
+          resolve(chunks);
+        }
+      };
+
+      // 错误处理
+      xhr.onerror = () => {
+        reject(new Error('Network error'));
+      };
+
+      // 发送请求
+      xhr.send(JSON.stringify(params));
+    });
   }
 
   /**
