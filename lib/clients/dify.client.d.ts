@@ -774,6 +774,7 @@ export interface UploadFileResponse {
 export interface HttpClientConfig {
     baseUrl: string;
     apiKey: string;
+    defaultHeaders?: Record<string, string>;
 }
 /** 上传文件后，组装前端需要的文件对象 */
 export interface UploadFileResult extends UploadFileResponse {

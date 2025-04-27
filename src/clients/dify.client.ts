@@ -831,6 +831,7 @@ export interface UploadFileResponse {
 export interface HttpClientConfig {
   baseUrl: string;
   apiKey: string;
+  defaultHeaders?: Record<string, string>;
 }
 
 /** 上传文件后，组装前端需要的文件对象 */
@@ -926,7 +927,7 @@ export class DifyClient {
   private config: HttpClientConfig;
 
   constructor(config: HttpClientConfig) {
-    this.config = config;
+    this.config = { defaultHeaders: {}, ...config };
   }
 
   getConfig() {
@@ -952,7 +953,7 @@ export class DifyClient {
     const url = `${this.config.baseUrl}/v1/conversations?${query}`;
 
     const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${this.config.apiKey}`, Accept: 'application/json' },
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, Accept: 'application/json', ...this.config.defaultHeaders },
       method: 'GET',
     });
 
@@ -978,7 +979,7 @@ export class DifyClient {
     const url = `${this.config.baseUrl}/v1/messages?${query}`;
 
     const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${this.config.apiKey}`, Accept: 'application/json' },
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, Accept: 'application/json', ...this.config.defaultHeaders },
       method: 'GET',
     });
 
@@ -1006,7 +1007,11 @@ export class DifyClient {
 
       const response = await fetch(url, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+        headers: {
+          Authorization: `Bearer ${this.config.apiKey}`,
+          'Content-Type': 'application/json',
+          ...this.config.defaultHeaders,
+        },
         body: JSON.stringify({ inputs: {}, ...params }),
       });
 
@@ -1085,6 +1090,11 @@ export class DifyClient {
       xhr.setRequestHeader('Authorization', `Bearer ${this.config.apiKey}`);
       xhr.setRequestHeader('Content-Type', 'application/json');
 
+      this.config.defaultHeaders &&
+        Object.keys(this.config.defaultHeaders).forEach((key) => {
+          xhr.setRequestHeader(key, this.config.defaultHeaders![key]);
+        });
+
       let buffer = '';
       const chunks: ChatChunkCompletionResponse[] = [];
       let lastProcessedLength = 0;
@@ -1145,7 +1155,11 @@ export class DifyClient {
     const url = `${this.config.baseUrl}/v1/chat-messages/${params.task_id}/stop`;
     const response = await fetch(url, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+        ...this.config.defaultHeaders,
+      },
       body: JSON.stringify({ user: params.user }),
     });
 
@@ -1164,7 +1178,11 @@ export class DifyClient {
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+        ...this.config.defaultHeaders,
+      },
       body: JSON.stringify({ rating: params.rating, user: params.user, content: params.content }),
     });
 
@@ -1183,7 +1201,11 @@ export class DifyClient {
 
     const response = await fetch(url, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+        ...this.config.defaultHeaders,
+      },
     });
 
     if (!response.ok) {
@@ -1201,7 +1223,11 @@ export class DifyClient {
 
     const response = await fetch(url, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+        ...this.config.defaultHeaders,
+      },
       body: JSON.stringify({ user: params.user }),
     });
 
@@ -1219,7 +1245,11 @@ export class DifyClient {
     const url = `${this.config.baseUrl}/v1/conversations/${params.conversation_id}/name`;
     const response = await fetch(url, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+        ...this.config.defaultHeaders,
+      },
       body: JSON.stringify({ name: params.name, auto_generate: params.auto_generate, user: params.user }),
     });
 
@@ -1241,7 +1271,7 @@ export class DifyClient {
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${this.config.apiKey}` },
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, ...this.config.defaultHeaders },
       body: formData,
     });
 
@@ -1260,7 +1290,11 @@ export class DifyClient {
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+        ...this.config.defaultHeaders,
+      },
       body: JSON.stringify(params),
     });
 
@@ -1279,7 +1313,7 @@ export class DifyClient {
 
     const response = await fetch(url, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${this.config.apiKey}` },
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, ...this.config.defaultHeaders },
     });
 
     if (!response.ok) {
@@ -1294,7 +1328,7 @@ export class DifyClient {
     const url = `${this.config.baseUrl}/v1/info`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${this.config.apiKey}` },
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, ...this.config.defaultHeaders },
     });
 
     if (!response.ok) {
@@ -1312,7 +1346,7 @@ export class DifyClient {
     const url = `${this.config.baseUrl}/v1/meta`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${this.config.apiKey}` },
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, ...this.config.defaultHeaders },
     });
 
     if (!response.ok) {
@@ -1340,6 +1374,7 @@ export class DifyClient {
       headers: {
         Authorization: `Bearer ${this.config.apiKey}`,
         'Content-Type': 'application/json',
+        ...this.config.defaultHeaders,
       },
       body: JSON.stringify(params),
     });
@@ -1360,6 +1395,7 @@ export class DifyClient {
       headers: {
         Authorization: `Bearer ${this.config.apiKey}`,
         'Content-Type': 'application/json',
+        ...this.config.defaultHeaders,
       },
       body: JSON.stringify(params),
     });
@@ -1405,7 +1441,11 @@ export class DifyClient {
     const url = `${this.config.baseUrl}/v1/workflows/run/${params.workflow_id}`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+        ...this.config.defaultHeaders,
+      },
     });
 
     if (!response.ok) {
@@ -1422,7 +1462,11 @@ export class DifyClient {
     const url = `${this.config.baseUrl}/v1/workflows/tasks/${params.task_id}/stop`;
     const response = await fetch(url, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+        ...this.config.defaultHeaders,
+      },
       body: JSON.stringify({ user: params.user }),
     });
 
@@ -1442,7 +1486,11 @@ export class DifyClient {
     }&limit=${params.limit || 20}`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+        ...this.config.defaultHeaders,
+      },
     });
 
     if (!response.ok) {
@@ -1461,7 +1509,7 @@ export class DifyClient {
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${this.config.apiKey}` },
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, ...this.config.defaultHeaders },
       body: formData,
     });
 
@@ -1487,7 +1535,11 @@ export class DifyClient {
     if (params.response_mode === 'blocking') {
       const response = await fetch(url, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+        headers: {
+          Authorization: `Bearer ${this.config.apiKey}`,
+          'Content-Type': 'application/json',
+          ...this.config.defaultHeaders,
+        },
         body: JSON.stringify(body),
       });
       return response.json() as Promise<CompletionMessageResponse>;
@@ -1495,7 +1547,11 @@ export class DifyClient {
       // 流式处理逻辑
       const response = await fetch(url, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
+        headers: {
+          Authorization: `Bearer ${this.config.apiKey}`,
+          'Content-Type': 'application/json',
+          ...this.config.defaultHeaders,
+        },
         body: JSON.stringify(body),
       });
 
@@ -1546,6 +1602,7 @@ export class DifyClient {
       headers: {
         Authorization: `Bearer ${this.config.apiKey}`,
         'Content-Type': 'application/json',
+        ...this.config.defaultHeaders,
       },
       body: JSON.stringify({ user: params.user }),
     });
