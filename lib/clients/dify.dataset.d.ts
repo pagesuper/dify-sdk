@@ -10,7 +10,7 @@ export interface GetUploadFileParams {
     /** 文档ID */
     document_id: string;
 }
-export declare class DifyService {
+export declare class DifyDataset {
     private config;
     constructor(config: HttpClientServiceConfig);
     getUploadFile(params: GetUploadFileParams): Promise<any>;
