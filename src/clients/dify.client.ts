@@ -922,6 +922,18 @@ export const MIME_MAP = {
   },
 };
 
+function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> {
+  return new Proxy(obj, {
+    get(target, prop) {
+      return keys.includes(prop as K) ? undefined : target[prop as keyof T];
+    },
+    ownKeys(target) {
+      return Object.keys(target).filter((key) => !keys.includes(key as K));
+    },
+    // 其他trap根据需要实现
+  }) as Omit<T, K>;
+}
+
 /** 支持浏览器/Node 的 HTTP 客户端 */
 export class DifyClient {
   private config: HttpClientConfig;
@@ -1183,7 +1195,7 @@ export class DifyClient {
         'Content-Type': 'application/json',
         ...this.config.defaultHeaders,
       },
-      body: JSON.stringify({ rating: params.rating, user: params.user, content: params.content }),
+      body: JSON.stringify({ ...omit(params, ['message_id']) }),
     });
 
     if (!response.ok) {

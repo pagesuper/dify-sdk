@@ -1,6 +1,6 @@
 {
   "name": "dify-sdk",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "dify-sdk",
   "author": "happy",
   "private": false,
@@ -39,7 +39,9 @@
     ],
     "*.{css,scss}": "stylelint --fix"
   },
-  "dependencies": {},
+  "dependencies": {
+    "dify-sdk": "."
+  },
   "devDependencies": {
     "@babel/plugin-syntax-typescript": "7.20.0",
     "@babel/preset-env": "7.23.9",
