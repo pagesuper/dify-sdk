@@ -1,4 +1,4 @@
-/// 以下是models
+import { TextDecoder } from 'fastestsmallesttextencoderdecoder';
 
 /** 运行 Workflow 请求参数接口 */
 export interface WorkflowRunParams {
