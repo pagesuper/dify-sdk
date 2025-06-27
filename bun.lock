@@ -5,7 +5,6 @@
       "name": "nestjs-lib",
       "dependencies": {
         "dify-sdk": ".",
-        "fastestsmallesttextencoderdecoder": "^1.0.22",
       },
       "devDependencies": {
         "@babel/plugin-syntax-typescript": "7.20.0",
@@ -13,7 +12,6 @@
         "@babel/preset-typescript": "7.18.6",
         "@types/cache-manager": "4.0.2",
         "@types/cookie": "0.6.0",
-        "@types/fastestsmallesttextencoderdecoder": "^1.0.2",
         "@types/html5plus": "1.0.5",
         "@types/jest": "29.5.12",
         "@types/js-yaml": "4.0.9",
@@ -379,8 +377,6 @@
     "@types/eslint-scope": ["@types/eslint-scope@3.7.7", "https://registry.npmmirror.com/@types/eslint-scope/-/eslint-scope-3.7.7.tgz", { "dependencies": { "@types/eslint": "*", "@types/estree": "*" } }, "sha512-MzMFlSLBqNF2gcHWO0G1vP/YQyfvrxZ0bF+u7mzUdZ1/xK4A4sru+nraZz5i3iEIk1l1uyicaDVTB4QbbEkAYg=="],
 
     "@types/estree": ["@types/estree@1.0.6", "https://registry.npmmirror.com/@types/estree/-/estree-1.0.6.tgz", {}, "sha512-AYnb1nQyY49te+VRAVgmzfcgjYS91mY5P0TKUDCLEM+gNnA+3T6rWITXRLYCpahpqSQbN5cE+gHpnPyXjHWxcw=="],
-
-    "@types/fastestsmallesttextencoderdecoder": ["@types/fastestsmallesttextencoderdecoder@1.0.2", "https://registry.npmmirror.com/@types/fastestsmallesttextencoderdecoder/-/fastestsmallesttextencoderdecoder-1.0.2.tgz", {}, "sha512-0Md9qUxGnQ9uJ0NjsA70Y0NHIl3NwfBO1d8CGXK0zhczRL85CXJ3M0JZsmCNQ0WcAbt08FuT4U1G1mWQqgOsUg=="],
 
     "@types/glob": ["@types/glob@7.2.0", "https://registry.npmmirror.com/@types/glob/-/glob-7.2.0.tgz", { "dependencies": { "@types/minimatch": "*", "@types/node": "*" } }, "sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA=="],
 
@@ -923,8 +919,6 @@
     "fast-uri": ["fast-uri@3.0.3", "https://registry.npmmirror.com/fast-uri/-/fast-uri-3.0.3.tgz", {}, "sha512-aLrHthzCjH5He4Z2H9YZ+v6Ujb9ocRuW6ZzkJQOrTxleEijANq4v1TsaPaVG1PZcuurEzrLcWRyYBYXD5cEiaw=="],
 
     "fastest-levenshtein": ["fastest-levenshtein@1.0.16", "https://registry.npmmirror.com/fastest-levenshtein/-/fastest-levenshtein-1.0.16.tgz", {}, "sha512-eRnCtTTtGZFpQCwhJiUOuxPQWRXVKYDn0b2PeHfXL6/Zi53SLAzAHfVhVWK2AryC/WH05kGfxhFIPvTF0SXQzg=="],
-
-    "fastestsmallesttextencoderdecoder": ["fastestsmallesttextencoderdecoder@1.0.22", "https://registry.npmmirror.com/fastestsmallesttextencoderdecoder/-/fastestsmallesttextencoderdecoder-1.0.22.tgz", {}, "sha512-Pb8d48e+oIuY4MaM64Cd7OW1gt4nxCHs7/ddPPZ/Ic3sg8yVGM7O9wDvZ7us6ScaUupzM+pfBolwtYhN1IxBIw=="],
 
     "fastq": ["fastq@1.17.1", "https://registry.npmmirror.com/fastq/-/fastq-1.17.1.tgz", { "dependencies": { "reusify": "^1.0.4" } }, "sha512-sRVD3lWVIXWg6By68ZN7vho9a1pQcN/WBFaAAsDDFzlJjvoGx0P8z7V1t72grFJfJhu3YPZBuu25f7Kaw2jN1w=="],
 

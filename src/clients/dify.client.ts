@@ -1,4 +1,4 @@
-import { TextDecoder } from 'fastestsmallesttextencoderdecoder';
+import textDecoder from '../utils/text-decoder';
 
 /** 运行 Workflow 请求参数接口 */
 export interface WorkflowRunParams {
@@ -1043,7 +1043,9 @@ export class DifyClient {
             const { done, value } = await reader.read();
 
             // 将Buffer转换为字符串
-            buffer += new TextDecoder().decode(value, { stream: true });
+            if (value !== undefined) {
+              buffer += textDecoder.decode(value, { stream: true });
+            }
             buffer = this.parseAndFlushBuffer({ buffer, chunks, params });
 
             if (done) {
@@ -1613,7 +1615,7 @@ export class DifyClient {
             processBuffer(); // 处理剩余数据
             break;
           }
-          buffer += new TextDecoder().decode(value);
+          buffer += textDecoder.decode(value);
           processBuffer();
         }
       }
