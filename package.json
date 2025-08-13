@@ -1,6 +1,6 @@
 {
   "name": "dify-sdk",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "dify-sdk",
   "author": "happy",
   "private": false,
@@ -38,9 +38,6 @@
       "eslint --ext .js,.ts,.vue --ignore-path .eslintignore . --fix"
     ],
     "*.{css,scss}": "stylelint --fix"
-  },
-  "dependencies": {
-    "dify-sdk": "."
   },
   "devDependencies": {
     "@babel/plugin-syntax-typescript": "7.20.0",
