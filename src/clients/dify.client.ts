@@ -1,4 +1,7 @@
 import textDecoder from '../utils/text-decoder';
+import * as http from 'http';
+import * as https from 'https';
+import { URL } from 'url';
 
 /** 运行 Workflow 请求参数接口 */
 export interface WorkflowRunParams {
@@ -934,6 +937,9 @@ function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K
   }) as Omit<T, K>;
 }
 
+/** 检测是否为浏览器环境 */
+const isBrowser = typeof window !== 'undefined' && typeof window.XMLHttpRequest !== 'undefined';
+
 /** 支持浏览器/Node 的 HTTP 客户端 */
 export class DifyClient {
   private config: HttpClientConfig;
@@ -1095,71 +1101,155 @@ export class DifyClient {
     return buffer;
   }
 
+  /**
+   * 处理流式响应，兼容浏览器(XMLHttpRequest)和Node.js(http/https)环境
+   */
   handleStreamWithXHR(params: SendMessageParams): Promise<ChatChunkCompletionResponse[]> {
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      const url = `${this.config.baseUrl}/v1/chat-messages`;
+    // 浏览器环境使用XMLHttpRequest
+    if (isBrowser) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        const url = `${this.config.baseUrl}/v1/chat-messages`;
 
-      xhr.open('POST', url, true);
-      xhr.setRequestHeader('Authorization', `Bearer ${this.config.apiKey}`);
-      xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('Authorization', `Bearer ${this.config.apiKey}`);
+        xhr.setRequestHeader('Content-Type', 'application/json');
 
-      this.config.defaultHeaders &&
-        Object.keys(this.config.defaultHeaders).forEach((key) => {
-          xhr.setRequestHeader(key, this.config.defaultHeaders![key]);
-        });
+        this.config.defaultHeaders &&
+          Object.keys(this.config.defaultHeaders).forEach((key) => {
+            xhr.setRequestHeader(key, this.config.defaultHeaders![key]);
+          });
 
-      let buffer = '';
-      const chunks: ChatChunkCompletionResponse[] = [];
-      let lastProcessedLength = 0;
+        let buffer = '';
+        const chunks: ChatChunkCompletionResponse[] = [];
+        let lastProcessedLength = 0;
 
-      xhr.onprogress = function () {
-        const newData = xhr.responseText.slice(lastProcessedLength);
-        lastProcessedLength = xhr.responseText.length;
-        buffer += newData;
+        xhr.onprogress = function () {
+          const newData = xhr.responseText.slice(lastProcessedLength);
+          lastProcessedLength = xhr.responseText.length;
+          buffer += newData;
 
-        // 分割数据块（根据服务端规范调整分隔符）
-        const splitMark = '\n\n';
+          // 分割数据块（根据服务端规范调整分隔符）
+          const splitMark = '\n\n';
 
-        while (true) {
-          const chunkEnd = buffer.indexOf(splitMark);
-          if (chunkEnd === -1) break;
+          while (true) {
+            const chunkEnd = buffer.indexOf(splitMark);
+            if (chunkEnd === -1) break;
 
-          const chunkData = buffer.slice(0, chunkEnd + splitMark.length);
-          buffer = buffer.slice(chunkEnd + splitMark.length);
+            const chunkData = buffer.slice(0, chunkEnd + splitMark.length);
+            buffer = buffer.slice(chunkEnd + splitMark.length);
 
-          if (chunkData.trim().startsWith('data:')) {
-            try {
-              const chunk: ChatChunkCompletionResponse = JSON.parse(chunkData.replace(/^data: /, ''));
+            if (chunkData.trim().startsWith('data:')) {
+              try {
+                const chunk: ChatChunkCompletionResponse = JSON.parse(chunkData.replace(/^data: /, ''));
 
-              if (typeof params.chunkCompletionCallback === 'function') {
-                params.chunkCompletionCallback(chunk);
+                if (typeof params.chunkCompletionCallback === 'function') {
+                  params.chunkCompletionCallback(chunk);
+                }
+
+                chunks.push(chunk);
+              } catch (e) {
+                console.error('Chunk parse error:', chunkData);
               }
-
-              chunks.push(chunk);
-            } catch (e) {
-              console.error('Chunk parse error:', chunkData);
             }
           }
-        }
-      };
+        };
 
-      xhr.onloadend = function () {
-        // 请求完成
-        if (xhr.status >= 400) {
-          reject(new Error(`Request failed: ${xhr.statusText}`));
-        } else {
-          resolve(chunks);
-        }
-      };
+        xhr.onloadend = function () {
+          // 请求完成
+          if (xhr.status >= 400) {
+            reject(new Error(`Request failed: ${xhr.statusText}`));
+          } else {
+            resolve(chunks);
+          }
+        };
 
-      xhr.onerror = () => {
-        reject(new Error('Network error'));
-      };
+        xhr.onerror = () => {
+          reject(new Error('Network error'));
+        };
 
-      // 发送请求
-      xhr.send(JSON.stringify({ inputs: {}, ...params }));
-    });
+        // 发送请求
+        xhr.send(JSON.stringify({ inputs: {}, ...params }));
+      });
+    }
+    // Node.js环境使用http/https模块
+    else {
+      return new Promise((resolve, reject) => {
+        const url = new URL(`${this.config.baseUrl}/v1/chat-messages`);
+        const protocol = url.protocol === 'https:' ? https : http;
+
+        const body = JSON.stringify({ inputs: {}, ...params });
+
+        const headers = {
+          Authorization: `Bearer ${this.config.apiKey}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body),
+          ...this.config.defaultHeaders,
+        };
+
+        const options = {
+          hostname: url.hostname,
+          port: url.port || (url.protocol === 'https:' ? 443 : 80),
+          path: url.pathname + url.search,
+          method: 'POST',
+          headers,
+        };
+
+        let buffer = '';
+        const chunks: ChatChunkCompletionResponse[] = [];
+
+        const req = protocol.request(options, (res) => {
+          // 处理状态码错误
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(new Error(`Request failed: ${res.statusCode} ${res.statusMessage}`));
+            return;
+          }
+
+          // 处理流式响应
+          res.on('data', (chunk) => {
+            buffer += chunk.toString();
+
+            // 分割数据块
+            const splitMark = '\n\n';
+            while (true) {
+              const chunkEnd = buffer.indexOf(splitMark);
+              if (chunkEnd === -1) break;
+
+              const chunkData = buffer.slice(0, chunkEnd + splitMark.length);
+              buffer = buffer.slice(chunkEnd + splitMark.length);
+
+              if (chunkData.trim().startsWith('data:')) {
+                try {
+                  const parsedChunk: ChatChunkCompletionResponse = JSON.parse(chunkData.replace(/^data: /, ''));
+
+                  if (typeof params.chunkCompletionCallback === 'function') {
+                    params.chunkCompletionCallback(parsedChunk);
+                  }
+
+                  chunks.push(parsedChunk);
+                } catch (e) {
+                  console.error('Chunk parse error:', chunkData);
+                }
+              }
+            }
+          });
+
+          // 响应结束
+          res.on('end', () => {
+            resolve(chunks);
+          });
+        });
+
+        // 错误处理
+        req.on('error', (error) => {
+          reject(new Error(`Network error: ${error.message}`));
+        });
+
+        // 发送请求体
+        req.write(body);
+        req.end();
+      });
+    }
   }
 
   /**
@@ -1404,63 +1494,130 @@ export class DifyClient {
    * 处理流式响应
    */
   private handleWorkflowStream(params: WorkflowRunParams, url: string): Promise<WorkflowChunkResponse[]> {
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', url, true);
+    // 浏览器环境使用XMLHttpRequest
+    if (isBrowser && typeof XMLHttpRequest !== 'undefined') {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url, true);
 
-      // 设置请求头
-      xhr.setRequestHeader('Authorization', `Bearer ${this.config.apiKey}`);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      if (this.config.defaultHeaders) {
-        Object.keys(this.config.defaultHeaders).forEach((key) => {
-          xhr.setRequestHeader(key, this.config.defaultHeaders![key]);
-        });
-      }
+        // 设置请求头
+        xhr.setRequestHeader('Authorization', `Bearer ${this.config.apiKey}`);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        if (this.config.defaultHeaders) {
+          Object.keys(this.config.defaultHeaders).forEach((key) => {
+            xhr.setRequestHeader(key, this.config.defaultHeaders![key]);
+          });
+        }
 
-      let buffer = '';
-      const chunks: WorkflowChunkResponse[] = [];
-      let lastProcessedLength = 0;
+        let buffer = '';
+        const chunks: WorkflowChunkResponse[] = [];
+        let lastProcessedLength = 0;
 
-      // 流式数据处理
-      xhr.onprogress = () => {
-        const newData = xhr.responseText.slice(lastProcessedLength);
-        lastProcessedLength = xhr.responseText.length;
-        buffer += newData;
+        // 流式数据处理
+        xhr.onprogress = () => {
+          const newData = xhr.responseText.slice(lastProcessedLength);
+          lastProcessedLength = xhr.responseText.length;
+          buffer += newData;
 
-        // 事件分割处理（根据服务端规范使用 \n\n 分隔符）
-        while (buffer.includes('\n\n')) {
-          const chunkEnd = buffer.indexOf('\n\n');
-          const chunkStr = buffer.slice(0, chunkEnd);
-          buffer = buffer.slice(chunkEnd + 2);
+          // 事件分割处理（根据服务端规范使用 \n\n 分隔符）
+          while (buffer.includes('\n\n')) {
+            const chunkEnd = buffer.indexOf('\n\n');
+            const chunkStr = buffer.slice(0, chunkEnd);
+            buffer = buffer.slice(chunkEnd + 2);
 
-          if (chunkStr.startsWith('data:')) {
-            try {
-              const chunkData: WorkflowChunkResponse = JSON.parse(chunkStr.replace(/^data: /, '').trim());
-              chunks.push(chunkData);
-            } catch (e) {
-              console.error('Failed to parse workflow chunk:', chunkStr);
+            if (chunkStr.startsWith('data:')) {
+              try {
+                const chunkData: WorkflowChunkResponse = JSON.parse(chunkStr.replace(/^data: /, '').trim());
+                chunks.push(chunkData);
+              } catch (e) {
+                console.error('Failed to parse workflow chunk:', chunkStr);
+              }
             }
           }
-        }
-      };
+        };
 
-      // 请求完成处理
-      xhr.onloadend = () => {
-        if (xhr.status >= 400) {
-          reject(new Error(`Workflow failed: ${xhr.status} ${xhr.statusText}`));
-        } else {
-          resolve(chunks);
-        }
-      };
+        // 请求完成处理
+        xhr.onloadend = () => {
+          if (xhr.status >= 400) {
+            reject(new Error(`Workflow failed: ${xhr.status} ${xhr.statusText}`));
+          } else {
+            resolve(chunks);
+          }
+        };
 
-      // 错误处理
-      xhr.onerror = () => {
-        reject(new Error('Network error'));
-      };
+        // 错误处理
+        xhr.onerror = () => {
+          reject(new Error('Network error'));
+        };
 
-      // 发送请求
-      xhr.send(JSON.stringify(params));
-    });
+        // 发送请求
+        xhr.send(JSON.stringify(params));
+      });
+    }
+    // Node.js环境使用http/https模块
+    else {
+      return new Promise((resolve, reject) => {
+        const requestUrl = new URL(url);
+        const protocol = requestUrl.protocol === 'https:' ? https : http;
+
+        const body = JSON.stringify(params);
+
+        const headers = {
+          Authorization: `Bearer ${this.config.apiKey}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body),
+          ...this.config.defaultHeaders,
+        };
+
+        const options = {
+          hostname: requestUrl.hostname,
+          port: requestUrl.port || (requestUrl.protocol === 'https:' ? 443 : 80),
+          path: requestUrl.pathname + requestUrl.search,
+          method: 'POST',
+          headers,
+        };
+
+        let buffer = '';
+        const chunks: WorkflowChunkResponse[] = [];
+
+        const req = protocol.request(options, (res) => {
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(new Error(`Workflow failed: ${res.statusCode} ${res.statusMessage}`));
+            return;
+          }
+
+          res.on('data', (chunk) => {
+            buffer += chunk.toString();
+
+            while (buffer.includes('\n\n')) {
+              const chunkEnd = buffer.indexOf('\n\n');
+              const chunkStr = buffer.slice(0, chunkEnd);
+              buffer = buffer.slice(chunkEnd + 2);
+
+              if (chunkStr.startsWith('data:')) {
+                try {
+                  const chunkData: WorkflowChunkResponse = JSON.parse(chunkStr.replace(/^data: /, '').trim());
+                  chunks.push(chunkData);
+                } catch (e) {
+                  console.error('Failed to parse workflow chunk:', chunkStr);
+                }
+              }
+            }
+          });
+
+          res.on('end', () => {
+            resolve(chunks);
+          });
+        });
+
+        req.on('error', (error) => {
+          reject(new Error(`Network error: ${error.message}`));
+        });
+
+        req.write(body);
+        req.end();
+      });
+    }
   }
 
   /**

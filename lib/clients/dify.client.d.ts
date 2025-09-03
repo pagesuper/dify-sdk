@@ -819,6 +819,9 @@ export declare class DifyClient {
         chunks: ChatChunkCompletionResponse[];
         params: SendMessageParams;
     }): string;
+    /**
+     * 处理流式响应，兼容浏览器(XMLHttpRequest)和Node.js(http/https)环境
+     */
     handleStreamWithXHR(params: SendMessageParams): Promise<ChatChunkCompletionResponse[]>;
     /**
      * 停止响应

@@ -1,6 +1,6 @@
 {
   "name": "dify-sdk",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "description": "dify-sdk",
   "author": "happy",
   "private": false,
@@ -87,5 +87,8 @@
     "ts-jest": "29.1.2",
     "webpack-env": "0.8.0",
     "yorkie": "2.0.0"
+  },
+  "volta": {
+    "node": "20.19.4"
   }
 }
